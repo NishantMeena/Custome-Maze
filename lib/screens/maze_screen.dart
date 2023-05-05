@@ -434,7 +434,6 @@ class _MazeScreenState extends State<MazeScreen> with WidgetsBindingObserver {
     }
   }
 
-
   void mazePath(int row,int column){
     pathList=[];
     int sizeList=row*column;
