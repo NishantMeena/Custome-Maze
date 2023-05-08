@@ -1,0 +1,68 @@
+{
+  "items": [
+    {
+      "id": 0,
+      "level_ame": "Level:1",
+      "isOpen": true,
+      "row": 10,
+      "column": 5,
+      "count": 60
+    },
+    {
+      "id": 1,
+      "level_ame": "Level:2",
+      "isOpen": false,
+      "row": 11,
+      "column": 6,
+      "count": 60
+    },
+    {
+      "id": 2,
+      "level_ame": "Level:3",
+      "isOpen": false,
+      "row": 12,
+      "column": 7,
+      "count": 60
+    },
+    {
+      "id": 3,
+      "level_ame": "Level:4",
+      "isOpen": false,
+      "row": 13,
+      "column": 8,
+      "count": 60
+    },
+    {
+      "id": 4,
+      "level_ame": "Level:5",
+      "isOpen": false,
+      "row": 14,
+      "column": 9,
+      "count": 70
+    },
+    {
+      "id": 5,
+      "level_ame": "Level:6",
+      "isOpen": false,
+      "row": 15,
+      "column": 10,
+      "count": 70
+    },
+    {
+      "id": 6,
+      "level_ame": "Level:7",
+      "isOpen": false,
+      "row": 16,
+      "column": 11,
+      "count": 70
+    },
+    {
+      "id": 7,
+      "level_ame": "Level:8",
+      "isOpen": false,
+      "row": 17,
+      "column": 12,
+      "count": 70
+    }
+  ]
+}
