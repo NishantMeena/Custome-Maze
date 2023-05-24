@@ -1,7 +1,11 @@
-import 'dart:math';
+import 'dart:async';
+import 'dart:collection';
+import 'dart:math' as math;
+import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:custom_mazeapp/models/path_item.dart';
 import 'package:flutter/material.dart' hide Stack;
+import 'package:flutter/services.dart';
 import 'models/cell.dart';
 import 'models/item_position.dart';
 import 'models/stack.dart';
@@ -25,13 +29,15 @@ enum Direction {
 ///Draws the maze based on params
 class MazePainter extends ChangeNotifier implements CustomPainter {
 //this list for store each cell wall condition...
-  static List<PathItem> listPath = [];
-  static List<int> listRow = [];
-  static List<int> listColumn = [];
 
   ///Default constructor
   MazePainter({
     required this.playerImage,
+    required this.playerImageUp,
+    required this.playerImageDown,
+    required this.playerImageLeft,
+    required this.playerImageRight,
+    this.playerColor = Colors.black,
     this.checkpointsImages = const [],
     this.columns = 7,
     this.finishImage,
@@ -50,6 +56,11 @@ class MazePainter extends ChangeNotifier implements CustomPainter {
 
     _exitPaint..color = wallColor;
 
+
+    _playerPaint
+      ..color = playerColor
+      ..isAntiAlias = true;
+
     _checkpoints = List.from(checkpointsImages);
     _checkpointsPositions = _checkpoints
         .map((i) => ItemPosition(
@@ -59,6 +70,8 @@ class MazePainter extends ChangeNotifier implements CustomPainter {
     _createMaze();
   }
 
+
+  final Color playerColor;
   ///Images for checkpoints
   final List<ui.Image> checkpointsImages;
 
@@ -76,7 +89,11 @@ class MazePainter extends ChangeNotifier implements CustomPainter {
   final Function(List<PathItem>)? onDrawPath;
 
   ///Image for player
-  final ui.Image playerImage;
+  late final ui.Image playerImage;
+  late final ui.Image playerImageUp;
+  late final ui.Image playerImageDown;
+  late final ui.Image playerImageLeft;
+  late final ui.Image playerImageRight;
 
   ///Number of rows
   final int rows;
@@ -100,32 +117,52 @@ class MazePainter extends ChangeNotifier implements CustomPainter {
   final Paint _wallPaint = Paint();
 
   ///Randomizer for positions and walls distribution
-  final Random _randomizer = Random();
+  final math.Random _randomizer = math.Random();
 
   ///Position of user from event
   late double _userX;
   late double _userY;
 
+  late double centerX;
+  late double centerY;
+
+  double playerRotation = 0.0;
+
+  Direction currentdirection = Direction.right;
+  Direction playerdirection = Direction.right;
+
+  List<Cell>? solution;
+  final Set<Cell> _visitedCells = {};
+
+  bool isSolSelect = false;
+
   ///This method initialize the maze by randomizing what wall will be disable
   void _createMaze() {
     var stack = Stack<Cell>();
+    var stackpop = Stack<Cell>();
     Cell current;
     Cell? next;
 
-    _cells =
-        List.generate(columns, (c) => List.generate(rows, (r) => Cell(c, r)));
+    _cells = List.generate(
+      columns,
+      (index1) => List.generate(
+        rows,
+        (index2) => Cell(index1, index2),
+      ),
+    );
 
     _player = _cells.first.first;
     _exit = _cells.last.last;
 
     current = _cells.first.first..visited = true;
-
+    _visitedCells.add(current); // store the first cell as visited
     do {
       next = _getNext(current);
       if (next != null) {
         _removeWall(current, next);
         stack.push(current);
         current = next..visited = true;
+        _visitedCells.add(current); // store the next cell as visited
       } else {
         current = stack.pop();
       }
@@ -138,15 +175,20 @@ class MazePainter extends ChangeNotifier implements CustomPainter {
   }
 
   /// This method moves player to user input
-  void movePlayer(Direction direction) {
+  void movePlayer(Direction direction) async {
+    // Update the playerRotation angle based on the currentdirection
     switch (direction) {
       case Direction.up:
         {
+          currentdirection = Direction.up;
+          playerRotation = 0.0;
           if (!_player.topWall) _player = _cells[_player.col][_player.row - 1];
           break;
         }
       case Direction.down:
         {
+          currentdirection = Direction.down;
+          playerRotation = math.pi;
           if (!_player.bottomWall) {
             _player = _cells[_player.col][_player.row + 1];
           }
@@ -154,17 +196,24 @@ class MazePainter extends ChangeNotifier implements CustomPainter {
         }
       case Direction.left:
         {
+          currentdirection = Direction.left;
+          playerRotation = -math.pi / 2;
           if (!_player.leftWall) _player = _cells[_player.col - 1][_player.row];
           break;
         }
       case Direction.right:
         {
+          currentdirection = Direction.right;
+          playerRotation = math.pi / 2;
           if (!_player.rightWall) {
             _player = _cells[_player.col + 1][_player.row];
           }
           break;
         }
     }
+
+    // Notify the listeners
+    notifyListeners();
 
     final result = _getItemPosition(_player.col, _player.row);
 
@@ -179,9 +228,33 @@ class MazePainter extends ChangeNotifier implements CustomPainter {
     }
 
     if (_player.col == _exit.col && _player.row == _exit.row) {
+      if (isSolSelect) {
+        solution = await computeSolutionPath(Cell(_player.col, _player.row));
+        notifyListeners();
+      }
       if (onFinish != null) {
         onFinish!();
       }
+    } else {
+      if (isSolSelect) {
+        solution = await computeSolutionPath(Cell(_player.col, _player.row));
+        notifyListeners();
+      }
+    }
+  }
+
+  Direction getPlayerDirection(double rotation) {
+    // Normalize the rotation angle to be between 0 and 360 degrees
+    rotation %= 360.0;
+
+    if (rotation >= 45.0 && rotation < 135.0) {
+      return Direction.down;
+    } else if (rotation >= 135.0 && rotation < 225.0) {
+      return Direction.left;
+    } else if (rotation >= 225.0 && rotation < 315.0) {
+      return Direction.up;
+    } else {
+      return Direction.right;
     }
   }
 
@@ -221,7 +294,7 @@ class MazePainter extends ChangeNotifier implements CustomPainter {
   }
 
   @override
-  void paint(Canvas canvas, Size size) {
+  void paint(Canvas canvas, Size size) async {
     //get cell size
     if (size.width / size.height < columns / rows) {
       _cellSize = size.width / (columns + 1);
@@ -232,14 +305,8 @@ class MazePainter extends ChangeNotifier implements CustomPainter {
     //margin
     _hMargin = (size.width - columns * _cellSize) / 2;
     _vMargin = (size.height - rows * _cellSize) / 2;
-
     var squareMargin = _cellSize / 10;
-
     canvas.translate(_hMargin, _vMargin);
-
-    listPath = [];
-    listRow = [];
-    listColumn = [];
     for (var v in _cells) {
       for (int i = 0; i < v.length; i++) {
         PathItem pathItem = PathItem();
@@ -248,10 +315,6 @@ class MazePainter extends ChangeNotifier implements CustomPainter {
               Offset(v[i].col * _cellSize, v[i].row * _cellSize),
               Offset((v[i].col + 1) * _cellSize, v[i].row * _cellSize),
               _wallPaint);
-          pathItem.topExistWall = true;
-        } else {
-          // print("??top wall not exist pos ==>$i");
-          pathItem.topExistWall = false;
         }
 
         if (v[i].leftWall) {
@@ -259,10 +322,6 @@ class MazePainter extends ChangeNotifier implements CustomPainter {
               Offset(v[i].col * _cellSize, v[i].row * _cellSize),
               Offset(v[i].col * _cellSize, (v[i].row + 1) * _cellSize),
               _wallPaint);
-          pathItem.leftExistWall = true;
-        } else {
-          pathItem.leftExistWall = false;
-          // print("??left wall not exist pos ==>$i");
         }
 
         if (v[i].bottomWall) {
@@ -270,10 +329,6 @@ class MazePainter extends ChangeNotifier implements CustomPainter {
               Offset(v[i].col * _cellSize, (v[i].row + 1) * _cellSize),
               Offset((v[i].col + 1) * _cellSize, (v[i].row + 1) * _cellSize),
               _wallPaint);
-          pathItem.bottomExistWall = true;
-        } else {
-          pathItem.bottomExistWall = false;
-          // print("??bottom wall not exist pos ==>$i");
         }
 
         if (v[i].rightWall) {
@@ -281,40 +336,45 @@ class MazePainter extends ChangeNotifier implements CustomPainter {
               Offset((v[i].col + 1) * _cellSize, v[i].row * _cellSize),
               Offset((v[i].col + 1) * _cellSize, (v[i].row + 1) * _cellSize),
               _wallPaint);
-          pathItem.rightExistWall = true;
-        } else {
-          pathItem.rightExistWall = false;
-          //print("??right wall not exist pos ==>$i");
         }
-        if (i == 0) {
-          pathItem.isFirst = true;
-          pathItem.isLast = false;
-        } else if (i == (v.length - 1)) {
-          pathItem.isFirst = false;
-          pathItem.isLast = true;
-        } else {
-          pathItem.isFirst = false;
-          pathItem.isLast = false;
-        }
-        pathItem.row = v[i].row + 1;
-        pathItem.column = v[i].col + 1;
-
-        listPath.add(pathItem);
-        listRow.add(v[i].row);
-        listColumn.add(v[i].col);
       }
     }
 
+    // Draw the solution path
+    if (solution != null) {
+      // draw the solution path if it exists
+      // set the paint color to red for the solution path
+      Paint paint = Paint()..color = Colors.green;
+
+      // iterate over the cells in the solution path
+      for (Cell cell in solution!) {
+        // calculate the pixel position of the center of the cell
+        centerX = (cell.col + 0.5) * _cellSize;
+        centerY = (cell.row + 0.5) * _cellSize;
+
+        // draw a small dot at the center of the cell to indicate it is part of the solution path
+        canvas.drawCircle(Offset(centerX, centerY), _cellSize / 20, paint);
+      }
+    }
+
+    // draw others
     if (finishImage != null) {
       canvas.drawImageRect(
-          finishImage!,
-          Offset.zero &
-              Size(finishImage!.width.toDouble(),
-                  finishImage!.height.toDouble()),
-          Offset(_exit.col * _cellSize + squareMargin,
-                  _exit.row * _cellSize + squareMargin) &
-              Size(_cellSize - squareMargin, _cellSize - squareMargin),
-          _exitPaint);
+        finishImage!,
+        Offset.zero &
+            Size(finishImage!.width.toDouble(), finishImage!.height.toDouble()),
+        Offset(
+              _exit.col * _cellSize +
+                  (_cellSize - _cellSize * 0.7) / 2 +
+                  squareMargin,
+              _exit.row * _cellSize +
+                  (_cellSize - _cellSize * 0.7) / 2 +
+                  squareMargin,
+            ) &
+            Size(
+                _cellSize * 0.6 - squareMargin, _cellSize * 0.7 - squareMargin),
+        _exitPaint,
+      );
     } else {
       canvas.drawRect(
           Rect.fromPoints(
@@ -337,14 +397,97 @@ class MazePainter extends ChangeNotifier implements CustomPainter {
           _wallPaint);
     }
 
-    canvas.drawImageRect(
-        playerImage,
-        Offset.zero &
-            Size(playerImage.width.toDouble(), playerImage.height.toDouble()),
-        Offset(_player.col * _cellSize + squareMargin,
-                _player.row * _cellSize + squareMargin) &
-            Size(_cellSize - squareMargin, _cellSize - squareMargin),
-        _playerPaint);
+    // Draw the player image
+
+    double rotationAngle = 0.0;
+    switch (currentdirection) {
+      case Direction.up:
+        rotationAngle = 0.0;
+        canvas.drawImageRect(
+          playerImageUp,
+          Offset.zero &
+          Size(playerImageUp.width.toDouble(), playerImageUp.height.toDouble()),
+          Offset(
+            _player.col * _cellSize +
+                (_cellSize - _cellSize * 0.6) / 2 +
+                squareMargin,
+            _player.row * _cellSize +
+                (_cellSize - _cellSize * 0.6) / 2 +
+                squareMargin,
+          ) &
+          Size(
+              _cellSize * 0.6 - squareMargin, _cellSize * 0.6 - squareMargin),
+          _playerPaint,
+        );
+        break;
+      case Direction.right:
+        rotationAngle = math.pi / 2;
+        canvas.drawImageRect(
+          playerImageRight,
+          Offset.zero &
+          Size(playerImageRight.width.toDouble(), playerImageRight.height.toDouble()),
+          Offset(
+            _player.col * _cellSize +
+                (_cellSize - _cellSize * 0.6) / 2 +
+                squareMargin,
+            _player.row * _cellSize +
+                (_cellSize - _cellSize * 0.6) / 2 +
+                squareMargin,
+          ) &
+          Size(
+              _cellSize * 0.6 - squareMargin, _cellSize * 0.6 - squareMargin),
+          _playerPaint,
+        );
+        break;
+      case Direction.down:
+        rotationAngle = math.pi;
+        canvas.drawImageRect(
+          playerImageDown,
+          Offset.zero &
+          Size(playerImageDown.width.toDouble(), playerImageDown.height.toDouble()),
+          Offset(
+            _player.col * _cellSize +
+                (_cellSize - _cellSize * 0.6) / 2 +
+                squareMargin,
+            _player.row * _cellSize +
+                (_cellSize - _cellSize * 0.6) / 2 +
+                squareMargin,
+          ) &
+          Size(
+              _cellSize * 0.6 - squareMargin, _cellSize * 0.6 - squareMargin),
+          _playerPaint,
+        );
+        break;
+      case Direction.left:
+        rotationAngle = -math.pi / 2;
+        canvas.drawImageRect(
+          playerImageLeft,
+          Offset.zero &
+          Size(playerImageLeft.width.toDouble(), playerImageLeft.height.toDouble()),
+          Offset(
+            _player.col * _cellSize +
+                (_cellSize - _cellSize * 0.6) / 2 +
+                squareMargin,
+            _player.row * _cellSize +
+                (_cellSize - _cellSize * 0.6) / 2 +
+                squareMargin,
+          ) &
+          Size(
+              _cellSize * 0.6 - squareMargin, _cellSize * 0.6 - squareMargin),
+          _playerPaint,
+        );
+        break;
+    }
+  }
+
+  // Utility function to load an image
+  Future<ui.Image> loadImage(String path) async {
+    final ByteData data = await rootBundle.load(path);
+    final Completer<ui.Image> completer = Completer();
+    ui.decodeImageFromList(Uint8List.view(data.buffer), (ui.Image img) {
+      return completer.complete(img);
+    });
+    return completer.future;
   }
 
   @override
@@ -421,11 +564,6 @@ class MazePainter extends ChangeNotifier implements CustomPainter {
       current.rightWall = false;
       next.leftWall = false;
     }
-
-
-
-
-
   }
 
   ItemPosition? _getItemPosition(int col, int row) {
@@ -435,5 +573,141 @@ class MazePainter extends ChangeNotifier implements CustomPainter {
     } catch (e) {
       return null;
     }
+  }
+
+  void removeSolution() {
+    isSolSelect = false;
+    solution = null;
+  }
+
+  Future<List<Cell>> computeSolutionPath(Cell startCell) async {
+    var endCell = _cells.last.last;
+    var queue = Queue<List<Cell>>();
+    queue.add([startCell]);
+    while (queue.isNotEmpty) {
+      var path = queue.removeFirst();
+      var currentCell = path.last;
+      if (currentCell == endCell) {
+        return path;
+      }
+      for (var neighbor in _getNeighbors(currentCell)) {
+        if (_visitedCells.contains(neighbor) && !path.contains(neighbor)) {
+          List<Cell> newPath = List.from(path)..add(neighbor);
+          queue.add(newPath);
+        }
+      }
+    }
+
+    return []; // no solution found
+  }
+
+  List<Cell> _getNeighbors(Cell cell) {
+    var neighbors = <Cell>[];
+//left
+    if (cell.col > 0) {
+      if (!_cells[cell.col][cell.row].leftWall) {
+        if (!_cells[cell.col - 1][cell.row].rightWall) {
+          neighbors.add(_cells[cell.col - 1][cell.row]);
+        }
+      }
+    }
+
+    //top
+    if (cell.row > 0) {
+      if (!_cells[cell.col][cell.row].topWall) {
+        //next cell should not have bottom wall
+        if (!_cells[cell.col][cell.row - 1].bottomWall) {
+          neighbors.add(_cells[cell.col][cell.row - 1]);
+        }
+      }
+    }
+
+    //right
+    if (cell.col < columns - 1) {
+      if (!_cells[cell.col][cell.row].rightWall) {
+        //next cell should not have left wall
+        if (!_cells[cell.col + 1][cell.row].leftWall) {
+          neighbors.add(_cells[cell.col + 1][cell.row]);
+        }
+      }
+    }
+
+    //bottom
+    if (cell.row < rows - 1) {
+      if (!_cells[cell.col][cell.row].bottomWall) {
+        //next cell should not have top wall
+        if (!_cells[cell.col][cell.row + 1].topWall) {
+          neighbors.add(_cells[cell.col][cell.row + 1]);
+        }
+      }
+    }
+
+    return neighbors.where((c) => !c.isVisited).toList();
+  }
+
+  List<Cell> getUnvisitedNeighbors(Cell cell) {
+    List<Cell> neighbours = [];
+
+    //left
+    if (cell.col > 0) {
+      if (!_cells[cell.col - 1][cell.row].isVisited) {
+        //current cell left wall check
+        if (!_cells[cell.col][cell.row].leftWall) {
+          //next cell should not have right wall
+          if (!_cells[cell.col - 1][cell.row].rightWall) {
+            neighbours.add(_cells[cell.col - 1][cell.row]);
+            _cells[cell.col - 1][cell.row].isVisited = true;
+          }
+        }
+      }
+    }
+
+    //right
+    if (cell.col < columns - 1) {
+      if (_cells.length != cell.col + 1) {
+        if (!_cells[cell.col + 1][cell.row].isVisited) {
+          //current cell right wall check
+          if (!_cells[cell.col][cell.row].rightWall) {
+            //next cell should not have left wall
+            if (!_cells[cell.col + 1][cell.row].leftWall) {
+              neighbours.add(_cells[cell.col + 1][cell.row]);
+              _cells[cell.col + 1][cell.row].isVisited = true;
+            }
+          }
+        }
+      }
+    }
+
+    //Top
+    if (cell.row > 0) {
+      if (!_cells[cell.col][cell.row - 1].isVisited) {
+        //current cell top wall check
+        if (!_cells[cell.col][cell.row].topWall) {
+          //next cell should not have bottom wall
+          if (!_cells[cell.col][cell.row - 1].bottomWall) {
+            neighbours.add(_cells[cell.col][cell.row - 1]);
+            _cells[cell.col][cell.row - 1].isVisited = true;
+          }
+        }
+      }
+    }
+
+    //Bottom
+    if (cell.row < rows - 1) {
+      if (_cells.length != cell.col + 1) {
+        if (!_cells[cell.col][cell.row + 1].isVisited) {
+          //current cell bottom wall check
+          if (!_cells[cell.col][cell.row].bottomWall) {
+            //next cell should not have top wall
+            if (!_cells[cell.col][cell.row + 1].topWall) {
+              neighbours.add(_cells[cell.col][cell.row + 1]);
+              _cells[cell.col][cell.row + 1].isVisited = true;
+            }
+          }
+        }
+      }
+    }
+
+    return neighbours;
   }
 }

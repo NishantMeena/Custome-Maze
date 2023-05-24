@@ -9,13 +9,24 @@ import 'package:custom_mazeapp/screens/maze_screen.dart';
 import 'package:flutter/services.dart';
 import 'package:sqflite/sqlite_api.dart';
 
+import 'level_selection.dart';
+
 class DashboardScreen extends StatefulWidget {
+  int dificulty=0;
+
+
+  DashboardScreen(this.dificulty);
+
   @override
   DashboardScreenState createState() => DashboardScreenState();
 }
 
 class DashboardScreenState extends State<DashboardScreen>
     with WidgetsBindingObserver {
+  int dificultyLevel=0;
+
+
+
   AudioPlayer player = AudioPlayer();
   AudioCache audioCache = AudioCache();
   DatabaseHelper databaseHelper = DatabaseHelper();
@@ -25,13 +36,22 @@ class DashboardScreenState extends State<DashboardScreen>
   static const snackBarDuration = Duration(seconds: 3);
   late DateTime backButtonPressTime;
   AppLifecycleState? _lastLifecycleState;
+  late Color boxColor;
 
   @override
   void initState() {
     super.initState();
+    dificultyLevel=widget.dificulty;
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       getList();
+      if(dificultyLevel==0){
+        boxColor=Colors.green;
+      }else if(dificultyLevel==1){
+        boxColor=Colors.blue;
+      }else if(dificultyLevel==2){
+        boxColor=Colors.red;
+      }
       playAudio();
     });
   }
@@ -39,7 +59,7 @@ class DashboardScreenState extends State<DashboardScreen>
   void getList() {
     final Future<Database> dbFuture = databaseHelper.initializeDatabase();
     dbFuture.then((database) {
-      Future<List<LevelItem>> noteListFuture = databaseHelper.getLevelList();
+      Future<List<LevelItem>> noteListFuture = databaseHelper.getLevelList(dificultyLevel);
       noteListFuture.then((listlevel) {
         setState(() {
           this.listlevel = listlevel;
@@ -52,8 +72,7 @@ class DashboardScreenState extends State<DashboardScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-   // player.stop();
-    //player.dispose();
+    player.stop();
     super.dispose();
   }
 
@@ -109,16 +128,16 @@ class DashboardScreenState extends State<DashboardScreen>
       appBar: AppBar(
         centerTitle: true,
         backgroundColor: Colors.transparent,
-        title: Text("Maze Level",style: TextStyle(color: Colors.deepOrange.shade300,fontSize: 16),),),
+        title: Text("Maze Level",style: TextStyle(fontFamily:"Sunny", color: boxColor,fontSize: 16),),),
           body: SafeArea(
             child: WillPopScope(
                 onWillPop: () async {
-                  if (Platform.isAndroid) {
-                    SystemNavigator.pop();
-                  } else if (Platform.isIOS) {
-                    exit(0);
-                  }
                   stopAudio();
+                  Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => LevelSelection(),
+                      ));
                   return false;
                 },
                 child:Column(
@@ -146,8 +165,8 @@ class DashboardScreenState extends State<DashboardScreen>
                                 }
                               },
                               child: Card(
-                                shadowColor: Colors.deepOrange,
-                                color: Colors.deepOrange,
+                                shadowColor:boxColor,
+                                color: boxColor,
                                 elevation: 10,
                                 child: Container(
                                   decoration: const BoxDecoration(
@@ -175,21 +194,42 @@ class DashboardScreenState extends State<DashboardScreen>
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.end,
                             children: [
+                              IconButton(
+                                  onPressed: () {
+                                    setState(() {
+                                      if (isPlaying) {
+                                        isPlaying = false;
+                                        playAudio();
+                                      } else {
+                                        isPlaying = true;
+
+                                        stopAudio();
+                                      }
+                                    });
+                                  },
+                                  icon: isPlaying
+                                      ? Icon(
+                                    Icons.volume_off,
+                                    color: boxColor,
+                                  )
+                                      : Icon(
+                                    Icons.volume_up,
+                                    color: boxColor,
+                                  )),
                               Padding(
                                 padding: const EdgeInsets.only(left: 8.0),
                                 child: Center(
                                   child: IconButton(
                                       onPressed: () async{
-                                         stopAudio();
-                                         if (Platform.isAndroid) {
-                                           SystemNavigator.pop();
-                                         } else if (Platform.isIOS) {
-                                           exit(0);
-                                         }
+                                        Navigator.pushReplacement(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) => LevelSelection(),
+                                            ));
                                       },
                                       icon: Icon(
                                         Icons.back_hand,
-                                        color: Colors.deepOrange.shade400,
+                                        color: boxColor,
                                       )),
                                 ),
                               ),
@@ -207,7 +247,7 @@ class DashboardScreenState extends State<DashboardScreen>
     return (listlevel[index].isOpen == 1)
         ? Text(
             listlevel[index].levelName,
-            style: TextStyle(
+            style: TextStyle(fontFamily:"Sunny",
                 color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
           )
         : Icon(
@@ -220,7 +260,7 @@ class DashboardScreenState extends State<DashboardScreen>
     Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (context) => MazeScreen(id, level, row, column, count),
+          builder: (context) => MazeScreen(id, level, row, column, count,dificultyLevel,boxColor),
         ));
   }
 }

@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'dart:ui' as ui;
+import 'package:custom_mazeapp/models/cell.dart';
 import 'package:custom_mazeapp/models/path_item.dart';
+import 'package:custom_mazeapp/screens/maze_screen.dart';
+import 'package:custom_mazeapp/utils/MazeSolver.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
@@ -17,22 +20,30 @@ import 'models/item.dart';
 ///if the player pass through a checkout at [onCheckpoint]
 class Maze extends StatefulWidget {
   ///Default constructor
-  Maze({
-    required this.player,
-    this.checkpoints = const [],
-    this.columns = 10,
-    this.finish,
-    this.height,
-    this.loadingWidget,
-    this.onCheckpoint,
-    this.onFinish,
-    this.onDrawPath,
-    this.rows = 7,
-    this.wallColor = Colors.black,
-    this.pointColor = Colors.black,
-    this.wallThickness = 3.0,
-    this.width,
-  });
+  Maze(
+      {required this.player,
+        required this.playerUp,
+        required this.playerDown,
+        required this.playerLeft,
+        required this.playerRight,
+      this.checkpoints = const [],
+      this.columns = 10,
+      this.finish,
+      this.height,
+      this.loadingWidget,
+      this.onCheckpoint,
+      this.onFinish,
+      this.onDrawPath,
+      this.rows = 7,
+      this.wallColor = Colors.black,
+      this.pointColor = Colors.black,
+      this.wallThickness = 3.0,
+      this.width,
+      this.sel = 0,
+      required this.playerColor});
+
+  int sel;
+  Color playerColor;
 
   ///List of checkpoints
   final List<MazeItem> checkpoints;
@@ -59,6 +70,16 @@ class Maze extends StatefulWidget {
   ///The main player
   final MazeItem player;
 
+  final MazeItem playerLeft;
+  final MazeItem playerRight;
+  final MazeItem playerUp;
+  final MazeItem playerDown;
+
+
+
+
+
+
   ///Rows of the maze
   final int rows;
 
@@ -80,8 +101,10 @@ class Maze extends StatefulWidget {
 
 class MazeState extends State<Maze> {
   bool _loaded = false;
-  late MazePainter _mazePainter;
+  MazePainter? _mazePainter;
   List<PathItem> listPath = [];
+  bool isDrawSelect = false;
+
 
   @override
   void initState() {
@@ -89,8 +112,19 @@ class MazeState extends State<Maze> {
     setUp();
   }
 
+  void solutionDraw() async {
+    _mazePainter?.isSolSelect = true;
+    _mazePainter?.solution = await _mazePainter?.computeSolutionPath(Cell(0, 0));
+    _mazePainter?.notifyListeners();
+  }
+
   void setUp() async {
     final playerImage = await _itemToImage(widget.player);
+    final playerImageUp = await _itemToImage(widget.playerUp);
+    final playerImageDown = await _itemToImage(widget.playerDown);
+    final playerImageLeft = await _itemToImage(widget.playerLeft);
+    final playerImageRight = await _itemToImage(widget.playerRight);
+
     final checkpoints = await Future.wait(
         widget.checkpoints.map((c) async => await _itemToImage(c)));
     final finishImage =
@@ -104,6 +138,11 @@ class MazeState extends State<Maze> {
       onFinish: widget.onFinish,
       onDrawPath: widget.onDrawPath,
       playerImage: playerImage,
+      playerImageUp: playerImageUp,
+      playerImageDown: playerImageDown,
+      playerImageLeft: playerImageLeft,
+      playerImageRight: playerImageRight,
+      playerColor: widget.playerColor,
       rows: widget.rows,
       wallColor: widget.wallColor ?? Colors.black,
       wallThickness: widget.wallThickness ?? 4.0,
@@ -113,33 +152,46 @@ class MazeState extends State<Maze> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(child: Builder(builder: (context) {
-      if (_loaded) {
-        return GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onVerticalDragUpdate: (info) =>
-                _mazePainter.updatePosition(info.localPosition),
-            child: Container(
-              
-              child: Stack(
-                children: [CustomPaint(
-                    painter: _mazePainter,
-                    size: Size(widget.width ?? context.width,
-                        widget.height ?? context.height)),
-                Text(widget.rows.toString(),style: TextStyle(color: Colors.white),)],
-                
-              ),
-            ));
+    if (widget.sel==0) {
+        _mazePainter?.removeSolution();
       } else {
-        if (widget.loadingWidget != null) {
-          return widget.loadingWidget!;
-        } else {
-          return const Center(
-            child: CircularProgressIndicator(),
-          );
-        }
+        solutionDraw();
       }
-    }));
+
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+      ),
+      body: Container(child: Builder(builder: (context) {
+        if (_loaded) {
+          return GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onVerticalDragUpdate: (info) async {
+                _mazePainter?.updatePosition(info.localPosition);
+                // _mazePainter.solution =await _mazePainter.computeSolutionPath(Cell(0, 0));
+                _mazePainter?.notifyListeners();
+              },
+              child: Container(
+                child: Stack(
+                  children: [
+                    CustomPaint(
+                        painter: _mazePainter,
+                        size: Size(widget.width ?? context.width,
+                            widget.height ?? context.height)),
+                  ],
+                ),
+              ));
+        } else {
+          if (widget.loadingWidget != null) {
+            return widget.loadingWidget!;
+          } else {
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          }
+        }
+      })),
+    );
   }
 
   Future<ui.Image> _itemToImage(MazeItem item) {
@@ -176,10 +228,6 @@ class MazeState extends State<Maze> {
     ui.decodeImageFromList(
         response.bodyBytes.buffer.asUint8List(), completer.complete);
     return completer.future;
-  }
-
-  void getCellDetail() {
-    //_mazePainter.getAllCell();
   }
 }
 
