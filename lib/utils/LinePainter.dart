@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 
 class LinePainter extends CustomPainter {
   final double? progress;
-
   LinePainter({this.progress});
-
   Paint _paint = Paint()
     ..color = Colors.black
     ..strokeWidth = 4.0

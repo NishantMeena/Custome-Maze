@@ -20,10 +20,15 @@ class Cell {
 
   ///The player has been passed in this cell?
   bool visited = false;
+  bool isVisited = false;
 
   ///Column position
   int col;
 
   ///Row position
   int row;
+
+  Cell? parent;
+
+  get neighbors => null;
 }

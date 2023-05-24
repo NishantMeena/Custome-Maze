@@ -12,59 +12,68 @@ import 'package:custom_mazeapp/utils/database_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:custom_mazeapp/utils/Constants.dart';
 import 'package:flutter/services.dart';
+import 'package:lottie/lottie.dart';
+import 'package:material_dialogs/widgets/buttons/icon_button.dart';
 import 'package:quickalert/quickalert.dart';
+import 'package:material_dialogs/material_dialogs.dart';
 
 import '../utils/Constants.dart';
 
 class MazeScreen extends StatefulWidget {
   int? id;
-  int row = 0, column = 0, count = 0;
+  int row = 0, column = 0, count = 0, dificulty = 0;
   String levelName = "";
+   Color boxColor=Colors.green;
 
-  MazeScreen(int id, String levelName, int row, int column, int count) {
+  MazeScreen(int id, String levelName, int row, int column, int count,
+      int dificulty, Color boxColor) {
     this.id = id;
     this.levelName = levelName;
     this.row = row;
     this.column = column;
     this.count = count;
+    this.dificulty = dificulty;
+    this.boxColor = boxColor;
   }
 
   @override
   _MazeScreenState createState() =>
-      _MazeScreenState(id!, levelName, row, column, count);
+      _MazeScreenState(id!, levelName, row, column, count, dificulty, boxColor);
 }
 
 class _MazeScreenState extends State<MazeScreen> with WidgetsBindingObserver {
   int myRow = Constants.DEF_ROW_NUMBER;
   int myColumn = Constants.DEF_COLUMN_NUMBER;
   int myCount = 0;
+  int dificultyLevel = 0;
   int? myId;
   String levelName = "";
-  late var pref;
-  static const maxSecond = 120;
-  int second = maxSecond;
+  late int maxSecond ;
+  late int second;
   Timer? timer;
-  late bool isRunningTimer;
-  late bool isCompleated;
-  late bool isProgressColor = true;
+  bool isRunningTimer=false;
+  bool isCompleated=false;
+  bool isProgressColor = true;
   var isPlaying = true;
   DatabaseHelper helper = DatabaseHelper();
   List<MazeItem> pathList = [];
+  Color boxColor=Colors.green;
+  Color playercol=Colors.green;
 
-  _MazeScreenState(
-      int id, String levelName, int myRow, int myColumn, int count) {
-    this.levelName = levelName;
-    this.myRow = myRow;
-    this.myColumn = myColumn;
-    this.myCount = count;
-    this.myId = id;
+  int sel = 0;
 
-    print("$myId $levelName $myRow $myColumn $myCount");
+  _MazeScreenState(int id, this.levelName, this.myRow, this.myColumn, int count,
+      int dificulty, Color boxColor) {
+    myCount = count;
+    myId = id;
+    dificultyLevel = dificulty;
+    this.maxSecond=count;
+    this.second=maxSecond;
   }
 
   void startTimer({bool reset = true}) {
     if (reset) {
-      resetTimer();
+      resetTimer(0);
     }
     timer = Timer.periodic(Duration(seconds: 1), (timer) {
       setState(() {
@@ -74,10 +83,10 @@ class _MazeScreenState extends State<MazeScreen> with WidgetsBindingObserver {
         } else {
           isProgressColor = false;
           // it does not reset the timer
-          stopTimer(reset: false);
-          showFailureDialog(context);
+          stopTimer(reset: false,pause:0);
           stopAudio();
           playAudio('game_over.mp3', false);
+          showFailureDialog(context);
         }
       });
     });
@@ -85,13 +94,15 @@ class _MazeScreenState extends State<MazeScreen> with WidgetsBindingObserver {
     isCompleated = second == maxSecond || second == 0;
   }
 
-  void resetTimer() {
-    second = maxSecond;
+  void resetTimer(int pause) {
+    if(pause==0){
+      second = maxSecond;
+    }
   }
 
-  void stopTimer({bool reset = true}) {
+  void stopTimer({bool reset = true,int pause=0}) {
     if (reset) {
-      resetTimer();
+      resetTimer(pause);
     }
     setState(() {
       timer?.cancel();
@@ -101,11 +112,22 @@ class _MazeScreenState extends State<MazeScreen> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    if(dificultyLevel==0){
+      boxColor=Colors.green;
+      playercol=Colors.red;
+    }else if(dificultyLevel==1){
+      boxColor=Colors.blue;
+      playercol=Colors.white;
+    }else if(dificultyLevel==2){
+      boxColor=Colors.red;
+      playercol=Colors.green;
+    }
     mazePath(myRow, myColumn);
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      startTimer(reset: false);
-      playAudio('puzzle_launch.mp3', true);
+       startTimer(reset: false);
+       print(">>>>>>>>>>>>>>initstate $isPlaying");
+       playAudio('game_music.mp3', true);
     });
   }
 
@@ -118,7 +140,7 @@ class _MazeScreenState extends State<MazeScreen> with WidgetsBindingObserver {
     player?.stop();
     player?.pause();
     player?.dispose();
-    stopTimer(reset: false);
+    stopTimer(reset: false,pause:0);
     super.dispose();
   }
 
@@ -127,9 +149,12 @@ class _MazeScreenState extends State<MazeScreen> with WidgetsBindingObserver {
     setState(() {
       if (state == AppLifecycleState.paused) {
         stopAudio();
+        stopTimer(reset: true,pause:1);
       } else if (state == AppLifecycleState.resumed) {
-        playAudio('puzzle_launch.mp3', true);
-        startTimer(reset: false);
+
+        print(">>>>>>>>>>>>>>resumes $isPlaying");
+         playAudio('game_music.mp3', true);
+         startTimer(reset: false);
       }
     });
   }
@@ -148,6 +173,7 @@ class _MazeScreenState extends State<MazeScreen> with WidgetsBindingObserver {
         if (timesPlayed >= timestoPlay) {
           timesPlayed = 0;
           player.stop();
+          isPlaying=false;
         } else {
           player.resume();
           isPlaying = true;
@@ -161,11 +187,36 @@ class _MazeScreenState extends State<MazeScreen> with WidgetsBindingObserver {
     stopAudio();
   }
 
-  void stopAudio() {
-    player?.stop();
-    player?.pause();
-    player?.dispose();
+  Future<void> stopAudio() async{
+    await player?.stop();
+    await player?.pause();
+    await player?.dispose();
   }
+
+  bool isButtonDisabled = false;
+
+  void handleClick() async{
+    if (!isButtonDisabled) {
+      setState(() {
+        isButtonDisabled = true;
+      });
+
+      // Enable the button after 2 seconds
+      Timer(Duration(seconds: 2), () {
+        setState(() {
+          isButtonDisabled = false;
+        });
+      });
+
+     await stopAudio();
+      player=AudioPlayer();
+      stopTimer(reset: true,pause:0);
+      onRestart(
+          myId!, levelName, myRow, myColumn, myCount);
+    }
+  }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -177,25 +228,13 @@ class _MazeScreenState extends State<MazeScreen> with WidgetsBindingObserver {
       },
       child: Scaffold(
           body: Padding(
-        padding: const EdgeInsets.only(top: 25.0),
+        padding: const EdgeInsets.only(top: 5.0),
         child: Column(
           children: [
             Expanded(
                 flex: 10,
                 child: Stack(
                   children: [
-                    Container(
-                      height: 15,
-                      width: double.infinity,
-                      child: Center(
-                        child: Text(
-                          'Level: $levelName',
-                          style: TextStyle(
-                              color: Colors.deepOrange.shade400,
-                              fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                    ),
                     myMaze(context, myRow, myColumn),
                   ],
                 )),
@@ -215,25 +254,30 @@ class _MazeScreenState extends State<MazeScreen> with WidgetsBindingObserver {
                             width: 15,
                           ),
                           IconButton(
-                              onPressed: () {
-                                mazePath(myRow, myColumn);
-                                setState(() {
-                                  MazeState().getCellDetail();
-                                });
-                              },
+                              onPressed: handleClick,
                               icon: Icon(
-                                Icons.account_tree_rounded,
-                                color: Colors.deepOrange,
+                                Icons.refresh_outlined,
+                                color: boxColor,
                               )),
                           IconButton(
                               onPressed: () {
-                                onRestart(
-                                    myId!, levelName, myRow, myColumn, myCount);
+                                setState(() {
+                                  if (sel == 0) {
+                                    sel = 1;
+                                  } else {
+                                    sel = 0;
+                                  }
+                                });
                               },
-                              icon: Icon(
-                                Icons.refresh_outlined,
-                                color: Colors.deepOrange,
-                              )),
+                              icon: sel == 0
+                                  ? Icon(
+                                      Icons.lightbulb_outline,
+                                      color: boxColor,
+                                    )
+                                  : Icon(
+                                      Icons.lightbulb,
+                                      color: boxColor,
+                                    ))
                         ],
                       ),
                     ),
@@ -268,18 +312,18 @@ class _MazeScreenState extends State<MazeScreen> with WidgetsBindingObserver {
                                     stopAudio();
                                   } else {
                                     isPlaying = true;
-                                    playAudio('puzzle_launch.mp3', true);
+                                    playAudio('game_music.mp3', true);
                                   }
                                 });
                               },
                               icon: isPlaying
                                   ? Icon(
                                       Icons.volume_up,
-                                      color: Colors.green,
+                                      color: boxColor,
                                     )
                                   : Icon(
                                       Icons.volume_off,
-                                      color: Colors.grey,
+                                      color: boxColor,
                                     )),
                           IconButton(
                               onPressed: () {
@@ -288,7 +332,7 @@ class _MazeScreenState extends State<MazeScreen> with WidgetsBindingObserver {
                               },
                               icon: Icon(
                                 Icons.back_hand,
-                                color: Colors.deepOrange.shade400,
+                                color: boxColor,
                               )),
                         ],
                       ),
@@ -310,6 +354,7 @@ class _MazeScreenState extends State<MazeScreen> with WidgetsBindingObserver {
             child: Text(
               formatedTime(second),
               style: TextStyle(
+                  fontFamily: "Sunny",
                   color: second > 0 ? Colors.green : Colors.red,
                   fontWeight: FontWeight.bold,
                   fontSize: 10),
@@ -320,61 +365,127 @@ class _MazeScreenState extends State<MazeScreen> with WidgetsBindingObserver {
 
   Widget myMaze(BuildContext context, int row, int column) {
 
+
     return Maze(
-        player: MazeItem('assets/running.png', ImageType.asset),
+        sel: sel,
+        playerColor:playercol ,
+        player: MazeItem("assets/ghost.png", ImageType.asset),
+        playerUp: MazeItem("assets/ghostup.png", ImageType.asset),
+        playerDown: MazeItem("assets/ghostdown.png", ImageType.asset),
+        playerLeft: MazeItem("assets/ghostleft.png", ImageType.asset),
+        playerRight: MazeItem("assets/ghostright.png", ImageType.asset),
         columns: myColumn,
         rows: myRow,
-       // checkpoints: pathList,
         wallThickness: 4.0,
-        wallColor: Colors.deepOrange,
-        pointColor: Colors.red,
+        wallColor: boxColor,
+        pointColor: boxColor,
         finish: MazeItem('assets/finish.png', ImageType.asset),
-        onDrawPath: (listPath) {
-          /*if(listPath!=null){
-            print("Nishant cell List ${listPath.length}");
-          }*/
-        },
+        onDrawPath: (listPath) {},
         onFinish: () {
           isProgressColor = false;
           stopTimer(reset: false);
           playAudio('success.mp3', false);
-          showSuccessDialog(context);
+          showDialog();
+
         });
   }
 
-  void showSuccessDialog(BuildContext context) async {
-    QuickAlert.show(
-        context: context,
-        type: QuickAlertType.success,
-        title: 'Success',
-        titleColor: Colors.green,
-        barrierColor: Colors.transparent.withAlpha(5),
-        text: 'Level Cleared...',
-        barrierDismissible: false,
-        confirmBtnText: 'Next',
-        confirmBtnColor: Colors.green,
-        onConfirmBtnTap: () async {
-          LevelItem levelItem =
-              LevelItem((myId! + 1), levelName, 1, myRow, myColumn, myCount);
+  //Dialogs
+  void showDialog() {
+    Dialogs.materialDialog(
+      color: Colors.white,
+      msg: 'Level Completed',
+      title: 'Congratulations',
+      lottieBuilder: Lottie.asset(
+        'assets/cong_example.json',
+        fit: BoxFit.contain,
+      ),
+      context: context,
+      barrierDismissible: false,
+      actions: [
+        IconsButton(
+          onPressed: () async {
 
-          int? lastid = (await helper.getLastItemId()) as int?;
-          if (lastid != myId) {
-            helper.updateLevel((myId! + 1));
-            LevelItem levelItem =
-                await helper.getLevel((myId! + 1)) as LevelItem;
-            onRestart(levelItem.id!, levelItem.levelName, levelItem.row,
-                levelItem.column, levelItem.count);
-          } else {
-            Navigator.pushReplacement(
+            stopAudio();
+            stopTimer(reset: true,pause:0);
+            LevelItem levelItem = LevelItem(
+              (myId! + 1),
+              levelName,
+              1,
+              myRow,
+              myColumn,
+              myCount,
+            );
+
+            int? lastid = await helper.getLastItemId(dificultyLevel) as int?;
+            if (lastid != myId) {
+              helper.updateLevel((myId! + 1), dificultyLevel);
+              LevelItem levelItem = await helper.getLevel(
+                (myId! + 1),
+                dificultyLevel,
+              ) as LevelItem;
+              onRestart(
+                levelItem.id!,
+                levelItem.levelName,
+                levelItem.row,
+                levelItem.column,
+                levelItem.count,
+              );
+            } else {
+              Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => DashboardScreen(),
-                ));
-          }
+                  builder: (context) => DashboardScreen(dificultyLevel),
+                ),
+              );
+            }
+            setState(() {});
+          },
+          text: 'Next',
+          iconData: Icons.done,
+          color: boxColor,
+          textStyle: TextStyle(fontFamily: "Sunny", color: Colors.white),
+          iconColor: Colors.white,
+        ),
+      ],
+    ).then((value) async{
+      stopAudio();
+      stopTimer(reset: true,pause:0);
+      LevelItem levelItem = LevelItem(
+        (myId! + 1),
+        levelName,
+        1,
+        myRow,
+        myColumn,
+        myCount,
+      );
 
-          setState(() {});
-        });
+      int? lastid = await helper.getLastItemId(dificultyLevel) as int?;
+      if (lastid != myId) {
+        helper.updateLevel((myId! + 1), dificultyLevel);
+        LevelItem levelItem = await helper.getLevel(
+          (myId! + 1),
+          dificultyLevel,
+        ) as LevelItem;
+        onRestart(
+          levelItem.id!,
+          levelItem.levelName,
+          levelItem.row,
+          levelItem.column,
+          levelItem.count,
+        );
+      } else {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => DashboardScreen(dificultyLevel),
+          ),
+        );
+      }
+      setState(() {});
+    });
   }
+
 
   void showFailureDialog(BuildContext context) {
     QuickAlert.show(
@@ -389,8 +500,9 @@ class _MazeScreenState extends State<MazeScreen> with WidgetsBindingObserver {
         barrierDismissible: false,
         animType: QuickAlertAnimType.slideInRight,
         onConfirmBtnTap: () {
+          stopAudio();
+          stopTimer(reset: true,pause:0);
           onRestart(myId!, levelName, myRow, myColumn, myCount);
-
           setState(() {});
         });
   }
@@ -399,7 +511,8 @@ class _MazeScreenState extends State<MazeScreen> with WidgetsBindingObserver {
     Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (context) => MazeScreen(id, level, row, column, count),
+          builder: (context) => MazeScreen(
+              id, level, row, column, count, dificultyLevel, boxColor),
         ));
   }
 
@@ -407,13 +520,13 @@ class _MazeScreenState extends State<MazeScreen> with WidgetsBindingObserver {
     Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (context) => DashboardScreen(),
+          builder: (context) => DashboardScreen(dificultyLevel),
         ));
   }
 
   Widget getVolumeIcon(bool isplay) {
     if (isplay) {
-      //stopAudio();
+      stopAudio();
       return const Icon(Icons.volume_off);
     } else {
       return const Icon(Icons.volume_up);
@@ -433,17 +546,14 @@ class _MazeScreenState extends State<MazeScreen> with WidgetsBindingObserver {
     }
   }
 
-  void mazePath(int row,int column){
-    pathList=[];
-    int sizeList=row*column;
+  void mazePath(int row, int column) {
+    pathList = [];
+    int sizeList = row * column;
 
-    for(int i=0;i<=(sizeList/2);i++){
-      MazeItem mazeItem=MazeItem('assets/dot.png' ,ImageType.asset);
+    for (int i = 0; i <= (sizeList / 2); i++) {
+      MazeItem mazeItem = MazeItem('assets/dot.png', ImageType.asset);
       pathList.add(mazeItem);
     }
-    setState(() {
-
-    });
+    setState(() {});
   }
-
 }
