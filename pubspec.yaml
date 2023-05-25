@@ -50,6 +50,7 @@ dependencies:
   fluttertoast: ^8.2.1
   animated_text_kit: ^4.2.2
   buttons_flutter: ^0.0.2+1
+  assets_audio_player: ^3.0.6
   quickalert:
 
 dev_dependencies:
@@ -80,6 +81,7 @@ flutter:
   #   - images/a_dot_ham.jpeg
   assets:
     - assets/
+    - assets/audio/
     - jsonFile/
 
   # An image asset can refer to one or more resolution-specific "variants", see

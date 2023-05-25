@@ -13,9 +13,11 @@ class LevelSelection extends StatefulWidget {
   LevelSelectionState createState() => LevelSelectionState();
 }
 
-class LevelSelectionState extends State<LevelSelection> with WidgetsBindingObserver{
-  AudioPlayer player = AudioPlayer();
-  AudioCache audioCache = AudioCache();
+class LevelSelectionState extends State<LevelSelection>
+    with WidgetsBindingObserver {
+  AudioPlayer? player;
+
+  AudioCache? audioCache;
   AppLifecycleState? _lastLifecycleState;
   bool isPlaying = false;
 
@@ -49,7 +51,7 @@ class LevelSelectionState extends State<LevelSelection> with WidgetsBindingObser
     List<Items> myList = [item1, item2, item3, item4];
     return Scaffold(
       body: WillPopScope(
-        onWillPop: () async{
+        onWillPop: () async {
           if (Platform.isAndroid) {
             SystemNavigator.pop();
           } else if (Platform.isIOS) {
@@ -101,7 +103,8 @@ class LevelSelectionState extends State<LevelSelection> with WidgetsBindingObser
                                   data.isLast == false
                                       ? ColorFiltered(
                                           colorFilter: ColorFilter.mode(
-                                            Colors.white, // Specify the desired color
+                                            Colors
+                                                .white, // Specify the desired color
                                             BlendMode.srcIn,
                                           ),
                                           child: Image.asset(
@@ -140,24 +143,24 @@ class LevelSelectionState extends State<LevelSelection> with WidgetsBindingObser
                       IconButton(
                           onPressed: () {
                             setState(() {
-                              if (isPlaying) {
-                                isPlaying = false;
+                              if(isPlaying){
                                 playAudio();
-                              } else {
-                                isPlaying = true;
+                                isPlaying=false;
+                              }else{
                                 stopAudio();
+                                isPlaying=true;
                               }
                             });
                           },
                           icon: isPlaying
                               ? Icon(
-                            Icons.volume_off,
-                            color: Colors.deepOrange.shade400,
-                          )
+                                  Icons.volume_off,
+                                  color: Colors.deepOrange.shade400,
+                                )
                               : Icon(
-                            Icons.volume_up,
-                            color: Colors.deepOrange.shade400,
-                          )),
+                                  Icons.volume_up,
+                                  color: Colors.deepOrange.shade400,
+                                )),
                       Padding(
                         padding: const EdgeInsets.only(left: 8.0),
                         child: Center(
@@ -184,25 +187,17 @@ class LevelSelectionState extends State<LevelSelection> with WidgetsBindingObser
     );
   }
 
-
   @override
   void initState() {
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if(player!=null&& isPlaying){
-        stopAudio();
-        playAudio();
-      }else{
-        playAudio();
-      }
+      playAudio();
     });
   }
-
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    player.stop();
     super.dispose();
   }
 
@@ -210,40 +205,38 @@ class LevelSelectionState extends State<LevelSelection> with WidgetsBindingObser
   void didChangeAppLifecycleState(AppLifecycleState state) {
     setState(() {
       _lastLifecycleState = state;
-      if(state==AppLifecycleState.paused){
-        stopAudio();
-      }else if(state==AppLifecycleState.resumed){
-        playAudio();
+      if (state == AppLifecycleState.paused) {
+
+      } else if (state == AppLifecycleState.resumed) {
+        setState(() {});
       }
     });
   }
 
   void playAudio() async {
+    player=AudioPlayer();
+    audioCache=AudioCache();
     int timesPlayed = 0;
     const timestoPlay = 10;
-    player = await audioCache.play('magic.mp3');
-    player.onPlayerCompletion.listen((event) {
+    player = await audioCache?.play('magic.mp3');
+    player?.onPlayerCompletion.listen((event) {
       timesPlayed++;
       if (timesPlayed >= timestoPlay) {
         timesPlayed = 0;
-        player.stop();
-        isPlaying = false;
+        player?.stop();
       } else {
-        player.resume();
-        isPlaying = true;
+        player?.resume();
       }
     }); // assign player here
   }
 
-  void stopAudio() async{
-    await player?.stop();
-    await player?.pause();
-    await player?.dispose();
-    setState(() {});
+  void stopAudio() {
+    player?.stop();
   }
 
   void onItemClick(Items item) {
     if (item.id == 0 || item.id == 1 || item.id == 2) {
+      stopAudio();
       moveNext(item.id);
     } else {
       print("theme selectr");

@@ -214,9 +214,7 @@ class MazePainter extends ChangeNotifier implements CustomPainter {
 
     // Notify the listeners
     notifyListeners();
-
     final result = _getItemPosition(_player.col, _player.row);
-
     if (result != null) {
       final checkpointIndex = _checkpointsPositions.indexOf(result);
       final image = _checkpoints[checkpointIndex];
@@ -226,8 +224,7 @@ class MazePainter extends ChangeNotifier implements CustomPainter {
         onCheckpoint!(checkpointsImages.indexOf(image));
       }
     }
-
-    if (_player.col == _exit.col && _player.row == _exit.row) {
+    /*if (_player.col == _exit.col && _player.row == _exit.row) {
       if (isSolSelect) {
         solution = await computeSolutionPath(Cell(_player.col, _player.row));
         notifyListeners();
@@ -240,13 +237,24 @@ class MazePainter extends ChangeNotifier implements CustomPainter {
         solution = await computeSolutionPath(Cell(_player.col, _player.row));
         notifyListeners();
       }
+    }*/
+
+    if (_player.col == _exit.col && _player.row == _exit.row) {
+     // solution = await computeSolutionPath(Cell(_player.col, _player.row));
+      //notifyListeners();
+      if (onFinish != null) {
+        onFinish!();
+      }
+    } else {
+      //solution = await computeSolutionPath(Cell(_player.col, _player.row));
+      //notifyListeners();
+      // ...
     }
   }
 
   Direction getPlayerDirection(double rotation) {
     // Normalize the rotation angle to be between 0 and 360 degrees
     rotation %= 360.0;
-
     if (rotation >= 45.0 && rotation < 135.0) {
       return Direction.down;
     } else if (rotation >= 135.0 && rotation < 225.0) {
@@ -409,14 +417,14 @@ class MazePainter extends ChangeNotifier implements CustomPainter {
           Size(playerImageUp.width.toDouble(), playerImageUp.height.toDouble()),
           Offset(
             _player.col * _cellSize +
-                (_cellSize - _cellSize * 0.6) / 2 +
+                (_cellSize - _cellSize * 0.9) / 2 +
                 squareMargin,
             _player.row * _cellSize +
-                (_cellSize - _cellSize * 0.6) / 2 +
+                (_cellSize - _cellSize * 0.9) / 2 +
                 squareMargin,
           ) &
           Size(
-              _cellSize * 0.6 - squareMargin, _cellSize * 0.6 - squareMargin),
+              _cellSize * 0.9 - squareMargin, _cellSize * 0.9 - squareMargin),
           _playerPaint,
         );
         break;
@@ -428,14 +436,14 @@ class MazePainter extends ChangeNotifier implements CustomPainter {
           Size(playerImageRight.width.toDouble(), playerImageRight.height.toDouble()),
           Offset(
             _player.col * _cellSize +
-                (_cellSize - _cellSize * 0.6) / 2 +
+                (_cellSize - _cellSize * 0.9) / 2 +
                 squareMargin,
             _player.row * _cellSize +
-                (_cellSize - _cellSize * 0.6) / 2 +
+                (_cellSize - _cellSize * 0.9) / 2 +
                 squareMargin,
           ) &
           Size(
-              _cellSize * 0.6 - squareMargin, _cellSize * 0.6 - squareMargin),
+              _cellSize * 0.9 - squareMargin, _cellSize * 0.9 - squareMargin),
           _playerPaint,
         );
         break;
@@ -447,14 +455,14 @@ class MazePainter extends ChangeNotifier implements CustomPainter {
           Size(playerImageDown.width.toDouble(), playerImageDown.height.toDouble()),
           Offset(
             _player.col * _cellSize +
-                (_cellSize - _cellSize * 0.6) / 2 +
+                (_cellSize - _cellSize * 0.9) / 2 +
                 squareMargin,
             _player.row * _cellSize +
-                (_cellSize - _cellSize * 0.6) / 2 +
+                (_cellSize - _cellSize * 0.9) / 2 +
                 squareMargin,
           ) &
           Size(
-              _cellSize * 0.6 - squareMargin, _cellSize * 0.6 - squareMargin),
+              _cellSize * 0.9- squareMargin, _cellSize * 0.9 - squareMargin),
           _playerPaint,
         );
         break;
@@ -466,14 +474,14 @@ class MazePainter extends ChangeNotifier implements CustomPainter {
           Size(playerImageLeft.width.toDouble(), playerImageLeft.height.toDouble()),
           Offset(
             _player.col * _cellSize +
-                (_cellSize - _cellSize * 0.6) / 2 +
+                (_cellSize - _cellSize * 0.9) / 2 +
                 squareMargin,
             _player.row * _cellSize +
-                (_cellSize - _cellSize * 0.6) / 2 +
+                (_cellSize - _cellSize *0.9) / 2 +
                 squareMargin,
           ) &
           Size(
-              _cellSize * 0.6 - squareMargin, _cellSize * 0.6 - squareMargin),
+              _cellSize * 0.9 - squareMargin, _cellSize *0.9 - squareMargin),
           _playerPaint,
         );
         break;

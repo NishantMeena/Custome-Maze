@@ -27,8 +27,8 @@ class DashboardScreenState extends State<DashboardScreen>
 
 
 
-  AudioPlayer player = AudioPlayer();
-  AudioCache audioCache = AudioCache();
+  AudioPlayer? player ;
+  AudioCache? audioCache ;
   DatabaseHelper databaseHelper = DatabaseHelper();
   List<LevelItem> listlevel = [];
   int count = 0;
@@ -72,7 +72,6 @@ class DashboardScreenState extends State<DashboardScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    player.stop();
     super.dispose();
   }
 
@@ -81,35 +80,32 @@ class DashboardScreenState extends State<DashboardScreen>
     setState(() {
       _lastLifecycleState = state;
       if(state==AppLifecycleState.paused){
-        stopAudio();
+
       }else if(state==AppLifecycleState.resumed){
-        playAudio();
+
       }
     });
   }
 
   void playAudio() async {
+    player=AudioPlayer();
+    audioCache=AudioCache();
     int timesPlayed = 0;
     const timestoPlay = 10;
-    player = await audioCache.play('puzzle_begning.mp3');
-    player.onPlayerCompletion.listen((event) {
+    player = await audioCache?.play('puzzle_begning.mp3');
+    player?.onPlayerCompletion.listen((event) {
       timesPlayed++;
       if (timesPlayed >= timestoPlay) {
         timesPlayed = 0;
-        player.stop();
-        isPlaying = false;
+        player?.stop();
       } else {
-        player.resume();
-        isPlaying = true;
+        player?.resume();
       }
     }); // assign player here
   }
 
-  void stopAudio() async{
-    await player?.stop();
-    await player?.pause();
-    await player?.dispose();
-    setState(() {});
+  void stopAudio() {
+     player?.stop();
   }
 
   @override
@@ -197,13 +193,12 @@ class DashboardScreenState extends State<DashboardScreen>
                               IconButton(
                                   onPressed: () {
                                     setState(() {
-                                      if (isPlaying) {
-                                        isPlaying = false;
+                                      if(isPlaying){
                                         playAudio();
-                                      } else {
-                                        isPlaying = true;
-
+                                        isPlaying=false;
+                                      }else{
                                         stopAudio();
+                                        isPlaying=true;
                                       }
                                     });
                                   },
@@ -221,6 +216,7 @@ class DashboardScreenState extends State<DashboardScreen>
                                 child: Center(
                                   child: IconButton(
                                       onPressed: () async{
+                                        stopAudio();
                                         Navigator.pushReplacement(
                                             context,
                                             MaterialPageRoute(
@@ -257,6 +253,7 @@ class DashboardScreenState extends State<DashboardScreen>
   }
 
   void onStartGame(int id, String level, int row, int column, int count) {
+    stopAudio();
     Navigator.pushReplacement(
         context,
         MaterialPageRoute(

@@ -178,6 +178,8 @@ code_sign_if_enabled() {
 if [[ "$CONFIGURATION" == "Debug" ]]; then
   install_framework "${BUILT_PRODUCTS_DIR}/FMDB/FMDB.framework"
   install_framework "${BUILT_PRODUCTS_DIR}/Toast/Toast.framework"
+  install_framework "${BUILT_PRODUCTS_DIR}/assets_audio_player/assets_audio_player.framework"
+  install_framework "${BUILT_PRODUCTS_DIR}/assets_audio_player_web/assets_audio_player_web.framework"
   install_framework "${BUILT_PRODUCTS_DIR}/audioplayers/audioplayers.framework"
   install_framework "${BUILT_PRODUCTS_DIR}/fluttertoast/fluttertoast.framework"
   install_framework "${BUILT_PRODUCTS_DIR}/path_provider_foundation/path_provider_foundation.framework"
@@ -187,6 +189,8 @@ fi
 if [[ "$CONFIGURATION" == "Profile" ]]; then
   install_framework "${BUILT_PRODUCTS_DIR}/FMDB/FMDB.framework"
   install_framework "${BUILT_PRODUCTS_DIR}/Toast/Toast.framework"
+  install_framework "${BUILT_PRODUCTS_DIR}/assets_audio_player/assets_audio_player.framework"
+  install_framework "${BUILT_PRODUCTS_DIR}/assets_audio_player_web/assets_audio_player_web.framework"
   install_framework "${BUILT_PRODUCTS_DIR}/audioplayers/audioplayers.framework"
   install_framework "${BUILT_PRODUCTS_DIR}/fluttertoast/fluttertoast.framework"
   install_framework "${BUILT_PRODUCTS_DIR}/path_provider_foundation/path_provider_foundation.framework"
@@ -196,6 +200,8 @@ fi
 if [[ "$CONFIGURATION" == "Release" ]]; then
   install_framework "${BUILT_PRODUCTS_DIR}/FMDB/FMDB.framework"
   install_framework "${BUILT_PRODUCTS_DIR}/Toast/Toast.framework"
+  install_framework "${BUILT_PRODUCTS_DIR}/assets_audio_player/assets_audio_player.framework"
+  install_framework "${BUILT_PRODUCTS_DIR}/assets_audio_player_web/assets_audio_player_web.framework"
   install_framework "${BUILT_PRODUCTS_DIR}/audioplayers/audioplayers.framework"
   install_framework "${BUILT_PRODUCTS_DIR}/fluttertoast/fluttertoast.framework"
   install_framework "${BUILT_PRODUCTS_DIR}/path_provider_foundation/path_provider_foundation.framework"
