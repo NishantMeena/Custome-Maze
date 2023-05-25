@@ -224,31 +224,11 @@ class MazePainter extends ChangeNotifier implements CustomPainter {
         onCheckpoint!(checkpointsImages.indexOf(image));
       }
     }
-    /*if (_player.col == _exit.col && _player.row == _exit.row) {
-      if (isSolSelect) {
-        solution = await computeSolutionPath(Cell(_player.col, _player.row));
-        notifyListeners();
-      }
-      if (onFinish != null) {
-        onFinish!();
-      }
-    } else {
-      if (isSolSelect) {
-        solution = await computeSolutionPath(Cell(_player.col, _player.row));
-        notifyListeners();
-      }
-    }*/
 
     if (_player.col == _exit.col && _player.row == _exit.row) {
-     // solution = await computeSolutionPath(Cell(_player.col, _player.row));
-      //notifyListeners();
       if (onFinish != null) {
         onFinish!();
       }
-    } else {
-      //solution = await computeSolutionPath(Cell(_player.col, _player.row));
-      //notifyListeners();
-      // ...
     }
   }
 
