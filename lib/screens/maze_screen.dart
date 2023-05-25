@@ -8,6 +8,7 @@ import 'package:custom_mazeapp/maze_widget.dart';
 import 'package:custom_mazeapp/models/item.dart';
 import 'package:custom_mazeapp/models/level/level_item.dart';
 import 'package:custom_mazeapp/screens/dashboard.dart';
+import 'package:custom_mazeapp/utils/AudioPlayerManager.dart';
 import 'package:custom_mazeapp/utils/database_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:custom_mazeapp/utils/Constants.dart';
@@ -23,7 +24,7 @@ class MazeScreen extends StatefulWidget {
   int? id;
   int row = 0, column = 0, count = 0, dificulty = 0;
   String levelName = "";
-   Color boxColor=Colors.green;
+  Color boxColor = Colors.green;
 
   MazeScreen(int id, String levelName, int row, int column, int count,
       int dificulty, Color boxColor) {
@@ -48,27 +49,33 @@ class _MazeScreenState extends State<MazeScreen> with WidgetsBindingObserver {
   int dificultyLevel = 0;
   int? myId;
   String levelName = "";
-  late int maxSecond ;
+  late int maxSecond;
+
   late int second;
   Timer? timer;
-  bool isRunningTimer=false;
-  bool isCompleated=false;
+  bool isRunningTimer = false;
+  bool isCompleated = false;
   bool isProgressColor = true;
-  var isPlaying = true;
+  var isPlaying = false;
+  var isPlayingR = false;
   DatabaseHelper helper = DatabaseHelper();
   List<MazeItem> pathList = [];
-  Color boxColor=Colors.green;
-  Color playercol=Colors.green;
-
+  Color boxColor = Colors.green;
+  Color playerColor = Colors.blue;
   int sel = 0;
+  AudioPlayer? player;
+  AudioCache? audioCache;
+  int timesPlayed = 0;
+  bool shouldContinuePlaying = true;
+  late final audioplaymanager;
 
   _MazeScreenState(int id, this.levelName, this.myRow, this.myColumn, int count,
       int dificulty, Color boxColor) {
     myCount = count;
     myId = id;
     dificultyLevel = dificulty;
-    this.maxSecond=count;
-    this.second=maxSecond;
+    this.maxSecond = count;
+    this.second = maxSecond;
   }
 
   void startTimer({bool reset = true}) {
@@ -83,9 +90,11 @@ class _MazeScreenState extends State<MazeScreen> with WidgetsBindingObserver {
         } else {
           isProgressColor = false;
           // it does not reset the timer
-          stopTimer(reset: false,pause:0);
-          stopAudio();
-          playAudio('game_over.mp3', false);
+          stopTimer(reset: false, pause: 0);
+          audioplaymanager.playAudioass(false);
+          if (isPlaying == false) {
+            playAudioonce('game_over.mp3');
+          }
           showFailureDialog(context);
         }
       });
@@ -95,12 +104,12 @@ class _MazeScreenState extends State<MazeScreen> with WidgetsBindingObserver {
   }
 
   void resetTimer(int pause) {
-    if(pause==0){
+    if (pause == 0) {
       second = maxSecond;
     }
   }
 
-  void stopTimer({bool reset = true,int pause=0}) {
+  void stopTimer({bool reset = true, int pause = 0}) {
     if (reset) {
       resetTimer(pause);
     }
@@ -109,38 +118,34 @@ class _MazeScreenState extends State<MazeScreen> with WidgetsBindingObserver {
     });
   }
 
+
   @override
   void initState() {
     super.initState();
-    if(dificultyLevel==0){
-      boxColor=Colors.green;
-      playercol=Colors.red;
-    }else if(dificultyLevel==1){
-      boxColor=Colors.blue;
-      playercol=Colors.white;
-    }else if(dificultyLevel==2){
-      boxColor=Colors.red;
-      playercol=Colors.green;
+    if (dificultyLevel == 0) {
+      boxColor = Colors.green;
+      playerColor = Colors.red;
+    } else if (dificultyLevel == 1) {
+      boxColor = Colors.blue;
+      playerColor = Colors.white;
+    } else if (dificultyLevel == 2) {
+      boxColor = Colors.red;
+      playerColor = Colors.green;
     }
     mazePath(myRow, myColumn);
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-       startTimer(reset: false);
-       print(">>>>>>>>>>>>>>initstate $isPlaying");
-       playAudio('game_music.mp3', true);
+      startTimer(reset: false);
+      audioplaymanager=AudioPlayerManager();
+      audioplaymanager.playAudioass(true);
     });
   }
-
-  AudioPlayer player = AudioPlayer();
-  AudioCache audioCache = AudioCache();
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    player?.stop();
-    player?.pause();
-    player?.dispose();
-    stopTimer(reset: false,pause:0);
+    stopTimer(reset: false, pause: 0);
+    audioplaymanager.playAudioass(false);
     super.dispose();
   }
 
@@ -148,59 +153,27 @@ class _MazeScreenState extends State<MazeScreen> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     setState(() {
       if (state == AppLifecycleState.paused) {
-        stopAudio();
-        stopTimer(reset: true,pause:1);
+        stopTimer(reset: true, pause: 1);
       } else if (state == AppLifecycleState.resumed) {
-
-        print(">>>>>>>>>>>>>>resumes $isPlaying");
-         playAudio('game_music.mp3', true);
-         startTimer(reset: false);
+        startTimer(reset: false);
       }
     });
   }
 
-  void playAudio(String audioPath, bool repeat) async {
-    int timesPlayed = 0;
-    const timestoPlay = 10;
-
-    if (repeat == false) {
-      player.stop();
-      player = await audioCache.play(audioPath);
-    } else {
-      player = await audioCache.play(audioPath);
-      player.onPlayerCompletion.listen((event) {
-        timesPlayed++;
-        if (timesPlayed >= timestoPlay) {
-          timesPlayed = 0;
-          player.stop();
-          isPlaying=false;
-        } else {
-          player.resume();
-          isPlaying = true;
-        }
-      });
-    }
-    // assign player here
-  }
-
-  void playOnce() {
-    stopAudio();
-  }
-
-  Future<void> stopAudio() async{
-    await player?.stop();
-    await player?.pause();
-    await player?.dispose();
+  void playAudioonce(String audio) async {
+    player = AudioPlayer();
+    audioCache = AudioCache();
+    player = await audioCache?.play(audio);
   }
 
   bool isButtonDisabled = false;
 
-  void handleClick() async{
+  void handleClick() async {
+    audioplaymanager.playAudioass(false);
     if (!isButtonDisabled) {
       setState(() {
         isButtonDisabled = true;
       });
-
       // Enable the button after 2 seconds
       Timer(Duration(seconds: 2), () {
         setState(() {
@@ -208,21 +181,16 @@ class _MazeScreenState extends State<MazeScreen> with WidgetsBindingObserver {
         });
       });
 
-     await stopAudio();
-      player=AudioPlayer();
-      stopTimer(reset: true,pause:0);
-      onRestart(
-          myId!, levelName, myRow, myColumn, myCount);
+      stopTimer(reset: true, pause: 0);
+      onRestart(myId!, levelName, myRow, myColumn, myCount);
     }
   }
-
-
 
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
       onWillPop: () async {
-        stopAudio();
+        audioplaymanager.playAudioass(false);
         goBack();
         return false;
       },
@@ -309,25 +277,25 @@ class _MazeScreenState extends State<MazeScreen> with WidgetsBindingObserver {
                                 setState(() {
                                   if (isPlaying) {
                                     isPlaying = false;
-                                    stopAudio();
+                                    audioplaymanager.playAudioass(false);
                                   } else {
                                     isPlaying = true;
-                                    playAudio('game_music.mp3', true);
+                                    audioplaymanager.playAudioass(true);
                                   }
                                 });
                               },
                               icon: isPlaying
                                   ? Icon(
-                                      Icons.volume_up,
+                                      Icons.volume_off,
                                       color: boxColor,
                                     )
                                   : Icon(
-                                      Icons.volume_off,
+                                      Icons.volume_up,
                                       color: boxColor,
                                     )),
                           IconButton(
                               onPressed: () {
-                                stopAudio();
+                                audioplaymanager.playAudioass(false);
                                 goBack();
                               },
                               icon: Icon(
@@ -364,16 +332,14 @@ class _MazeScreenState extends State<MazeScreen> with WidgetsBindingObserver {
   }
 
   Widget myMaze(BuildContext context, int row, int column) {
-
-
     return Maze(
         sel: sel,
-        playerColor:playercol ,
+        playerColor: playerColor,
         player: MazeItem("assets/ghost.png", ImageType.asset),
-        playerUp: MazeItem("assets/ghostup.png", ImageType.asset),
-        playerDown: MazeItem("assets/ghostdown.png", ImageType.asset),
-        playerLeft: MazeItem("assets/ghostleft.png", ImageType.asset),
-        playerRight: MazeItem("assets/ghostright.png", ImageType.asset),
+        playerUp: MazeItem("assets/ghostupper.png", ImageType.asset),
+        playerDown: MazeItem("assets/ghostdownmove.png", ImageType.asset),
+        playerLeft: MazeItem("assets/ghostleftmove.png", ImageType.asset),
+        playerRight: MazeItem("assets/ghostrightmove.png", ImageType.asset),
         columns: myColumn,
         rows: myRow,
         wallThickness: 4.0,
@@ -384,13 +350,16 @@ class _MazeScreenState extends State<MazeScreen> with WidgetsBindingObserver {
         onFinish: () {
           isProgressColor = false;
           stopTimer(reset: false);
-          playAudio('success.mp3', false);
-          showDialog();
+          audioplaymanager.playAudioass(false);
+          if (isPlaying == false) {
+            playAudioonce('success.mp3');
+          }
 
+          showDialog();
         });
   }
 
-  //Dialogs
+  // Dialogs
   void showDialog() {
     Dialogs.materialDialog(
       color: Colors.white,
@@ -405,9 +374,7 @@ class _MazeScreenState extends State<MazeScreen> with WidgetsBindingObserver {
       actions: [
         IconsButton(
           onPressed: () async {
-
-            stopAudio();
-            stopTimer(reset: true,pause:0);
+            stopTimer(reset: true, pause: 0);
             LevelItem levelItem = LevelItem(
               (myId! + 1),
               levelName,
@@ -448,9 +415,8 @@ class _MazeScreenState extends State<MazeScreen> with WidgetsBindingObserver {
           iconColor: Colors.white,
         ),
       ],
-    ).then((value) async{
-      stopAudio();
-      stopTimer(reset: true,pause:0);
+    ).then((value) async {
+      stopTimer(reset: true, pause: 0);
       LevelItem levelItem = LevelItem(
         (myId! + 1),
         levelName,
@@ -482,10 +448,8 @@ class _MazeScreenState extends State<MazeScreen> with WidgetsBindingObserver {
           ),
         );
       }
-      setState(() {});
     });
   }
-
 
   void showFailureDialog(BuildContext context) {
     QuickAlert.show(
@@ -500,14 +464,14 @@ class _MazeScreenState extends State<MazeScreen> with WidgetsBindingObserver {
         barrierDismissible: false,
         animType: QuickAlertAnimType.slideInRight,
         onConfirmBtnTap: () {
-          stopAudio();
-          stopTimer(reset: true,pause:0);
+          stopTimer(reset: true, pause: 0);
           onRestart(myId!, levelName, myRow, myColumn, myCount);
           setState(() {});
         });
   }
 
   void onRestart(int id, String level, int row, int column, int count) {
+    audioplaymanager.playAudioass(false);
     Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -526,7 +490,6 @@ class _MazeScreenState extends State<MazeScreen> with WidgetsBindingObserver {
 
   Widget getVolumeIcon(bool isplay) {
     if (isplay) {
-      stopAudio();
       return const Icon(Icons.volume_off);
     } else {
       return const Icon(Icons.volume_up);
