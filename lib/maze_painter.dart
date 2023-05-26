@@ -56,7 +56,6 @@ class MazePainter extends ChangeNotifier implements CustomPainter {
 
     _exitPaint..color = wallColor;
 
-
     _playerPaint
       ..color = playerColor
       ..isAntiAlias = true;
@@ -70,8 +69,8 @@ class MazePainter extends ChangeNotifier implements CustomPainter {
     _createMaze();
   }
 
-
   final Color playerColor;
+
   ///Images for checkpoints
   final List<ui.Image> checkpointsImages;
 
@@ -136,6 +135,9 @@ class MazePainter extends ChangeNotifier implements CustomPainter {
 
   bool isSolSelect = false;
 
+  int? playerrow;
+  int? playercol;
+
   ///This method initialize the maze by randomizing what wall will be disable
   void _createMaze() {
     var stack = Stack<Cell>();
@@ -153,6 +155,9 @@ class MazePainter extends ChangeNotifier implements CustomPainter {
 
     _player = _cells.first.first;
     _exit = _cells.last.last;
+
+    playerrow=_player.row;
+    playercol=_player.col;
 
     current = _cells.first.first..visited = true;
     _visitedCells.add(current); // store the first cell as visited
@@ -176,6 +181,7 @@ class MazePainter extends ChangeNotifier implements CustomPainter {
 
   /// This method moves player to user input
   void movePlayer(Direction direction) async {
+    solution=null;
     // Update the playerRotation angle based on the currentdirection
     switch (direction) {
       case Direction.up:
@@ -224,6 +230,25 @@ class MazePainter extends ChangeNotifier implements CustomPainter {
         onCheckpoint!(checkpointsImages.indexOf(image));
       }
     }
+
+
+   /* if (_player.col == _exit.col && _player.row == _exit.row) {
+      if (isSolSelect) {
+        solution = await computeSolutionPath(Cell(_player.col, _player.row));
+        notifyListeners();
+      }
+      if (onFinish != null) {
+        onFinish!();
+      }
+    } else {
+      if (isSolSelect) {
+        solution = await computeSolutionPath(Cell(_player.col, _player.row));
+        notifyListeners();
+      }
+    }*/
+
+    playerrow=_player.row;
+    playercol=_player.col;
 
     if (_player.col == _exit.col && _player.row == _exit.row) {
       if (onFinish != null) {
@@ -279,6 +304,9 @@ class MazePainter extends ChangeNotifier implements CustomPainter {
         }
       }
     }
+
+    playerrow=_player.row;
+    playercol=_player.col;
   }
 
   @override
@@ -394,17 +422,18 @@ class MazePainter extends ChangeNotifier implements CustomPainter {
         canvas.drawImageRect(
           playerImageUp,
           Offset.zero &
-          Size(playerImageUp.width.toDouble(), playerImageUp.height.toDouble()),
+              Size(playerImageUp.width.toDouble(),
+                  playerImageUp.height.toDouble()),
           Offset(
-            _player.col * _cellSize +
-                (_cellSize - _cellSize * 0.9) / 2 +
-                squareMargin,
-            _player.row * _cellSize +
-                (_cellSize - _cellSize * 0.9) / 2 +
-                squareMargin,
-          ) &
-          Size(
-              _cellSize * 0.9 - squareMargin, _cellSize * 0.9 - squareMargin),
+                _player.col * _cellSize +
+                    (_cellSize - _cellSize * 0.9) / 2 +
+                    squareMargin,
+                _player.row * _cellSize +
+                    (_cellSize - _cellSize * 0.9) / 2 +
+                    squareMargin,
+              ) &
+              Size(_cellSize * 0.9 - squareMargin,
+                  _cellSize * 0.9 - squareMargin),
           _playerPaint,
         );
         break;
@@ -413,17 +442,18 @@ class MazePainter extends ChangeNotifier implements CustomPainter {
         canvas.drawImageRect(
           playerImageRight,
           Offset.zero &
-          Size(playerImageRight.width.toDouble(), playerImageRight.height.toDouble()),
+              Size(playerImageRight.width.toDouble(),
+                  playerImageRight.height.toDouble()),
           Offset(
-            _player.col * _cellSize +
-                (_cellSize - _cellSize * 0.9) / 2 +
-                squareMargin,
-            _player.row * _cellSize +
-                (_cellSize - _cellSize * 0.9) / 2 +
-                squareMargin,
-          ) &
-          Size(
-              _cellSize * 0.9 - squareMargin, _cellSize * 0.9 - squareMargin),
+                _player.col * _cellSize +
+                    (_cellSize - _cellSize * 0.9) / 2 +
+                    squareMargin,
+                _player.row * _cellSize +
+                    (_cellSize - _cellSize * 0.9) / 2 +
+                    squareMargin,
+              ) &
+              Size(_cellSize * 0.9 - squareMargin,
+                  _cellSize * 0.9 - squareMargin),
           _playerPaint,
         );
         break;
@@ -432,17 +462,18 @@ class MazePainter extends ChangeNotifier implements CustomPainter {
         canvas.drawImageRect(
           playerImageDown,
           Offset.zero &
-          Size(playerImageDown.width.toDouble(), playerImageDown.height.toDouble()),
+              Size(playerImageDown.width.toDouble(),
+                  playerImageDown.height.toDouble()),
           Offset(
-            _player.col * _cellSize +
-                (_cellSize - _cellSize * 0.9) / 2 +
-                squareMargin,
-            _player.row * _cellSize +
-                (_cellSize - _cellSize * 0.9) / 2 +
-                squareMargin,
-          ) &
-          Size(
-              _cellSize * 0.9- squareMargin, _cellSize * 0.9 - squareMargin),
+                _player.col * _cellSize +
+                    (_cellSize - _cellSize * 0.9) / 2 +
+                    squareMargin,
+                _player.row * _cellSize +
+                    (_cellSize - _cellSize * 0.9) / 2 +
+                    squareMargin,
+              ) &
+              Size(_cellSize * 0.9 - squareMargin,
+                  _cellSize * 0.9 - squareMargin),
           _playerPaint,
         );
         break;
@@ -451,17 +482,18 @@ class MazePainter extends ChangeNotifier implements CustomPainter {
         canvas.drawImageRect(
           playerImageLeft,
           Offset.zero &
-          Size(playerImageLeft.width.toDouble(), playerImageLeft.height.toDouble()),
+              Size(playerImageLeft.width.toDouble(),
+                  playerImageLeft.height.toDouble()),
           Offset(
-            _player.col * _cellSize +
-                (_cellSize - _cellSize * 0.9) / 2 +
-                squareMargin,
-            _player.row * _cellSize +
-                (_cellSize - _cellSize *0.9) / 2 +
-                squareMargin,
-          ) &
-          Size(
-              _cellSize * 0.9 - squareMargin, _cellSize *0.9 - squareMargin),
+                _player.col * _cellSize +
+                    (_cellSize - _cellSize * 0.9) / 2 +
+                    squareMargin,
+                _player.row * _cellSize +
+                    (_cellSize - _cellSize * 0.9) / 2 +
+                    squareMargin,
+              ) &
+              Size(_cellSize * 0.9 - squareMargin,
+                  _cellSize * 0.9 - squareMargin),
           _playerPaint,
         );
         break;
@@ -568,7 +600,8 @@ class MazePainter extends ChangeNotifier implements CustomPainter {
     solution = null;
   }
 
-  Future<List<Cell>> computeSolutionPath(Cell startCell) async {
+  Future<List<Cell>> computeSolutionPath() async {
+    var startCell=Cell(_player.col, _player.row);
     var endCell = _cells.last.last;
     var queue = Queue<List<Cell>>();
     queue.add([startCell]);

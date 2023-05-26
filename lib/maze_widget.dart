@@ -22,10 +22,10 @@ class Maze extends StatefulWidget {
   ///Default constructor
   Maze(
       {required this.player,
-        required this.playerUp,
-        required this.playerDown,
-        required this.playerLeft,
-        required this.playerRight,
+      required this.playerUp,
+      required this.playerDown,
+      required this.playerLeft,
+      required this.playerRight,
       this.checkpoints = const [],
       this.columns = 10,
       this.finish,
@@ -75,11 +75,6 @@ class Maze extends StatefulWidget {
   final MazeItem playerUp;
   final MazeItem playerDown;
 
-
-
-
-
-
   ///Rows of the maze
   final int rows;
 
@@ -104,7 +99,7 @@ class MazeState extends State<Maze> {
   MazePainter? _mazePainter;
   List<PathItem> listPath = [];
   bool isDrawSelect = false;
-
+  bool isDraw = false;
 
   @override
   void initState() {
@@ -114,7 +109,8 @@ class MazeState extends State<Maze> {
 
   void solutionDraw() async {
     _mazePainter?.isSolSelect = true;
-    _mazePainter?.solution = await _mazePainter?.computeSolutionPath(Cell(0, 0));
+    _mazePainter?.solution =
+        await _mazePainter?.computeSolutionPath();
     _mazePainter?.notifyListeners();
   }
 
@@ -152,11 +148,11 @@ class MazeState extends State<Maze> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.sel==0) {
-        _mazePainter?.removeSolution();
-      } else {
-        solutionDraw();
-      }
+    if (widget.sel == 0) {
+      _mazePainter?.removeSolution();
+    } else {
+      solutionDraw();
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -167,8 +163,9 @@ class MazeState extends State<Maze> {
           return GestureDetector(
               behavior: HitTestBehavior.opaque,
               onVerticalDragUpdate: (info) async {
+                widget.sel = 0;
                 _mazePainter?.updatePosition(info.localPosition);
-                // _mazePainter.solution =await _mazePainter.computeSolutionPath(Cell(0, 0));
+                //_mazePainter.solution =await _mazePainter.computeSolutionPath(Cell(0, 0));
                 _mazePainter?.notifyListeners();
               },
               child: Container(

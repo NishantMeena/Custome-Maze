@@ -1,6 +1,7 @@
 import 'package:audioplayers/audioplayers.dart';
 import 'package:buttons_flutter/buttons_flutter.dart';
 import 'package:custom_mazeapp/screens/dashboard.dart';
+import 'package:custom_mazeapp/screens/star_rating.dart';
 import 'package:custom_mazeapp/utils/background_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -25,26 +26,34 @@ class LevelSelectionState extends State<LevelSelection>
       title: "Easy",
       img: "assets/stars.png",
       imgcolor: Colors.green,
+      star_color: Colors.cyanAccent,
       isLast: false,
-      id: 0);
+      id: 0,
+  rating: 1.0);
   Items item2 = Items(
       title: "Classic",
       img: "assets/stars.png",
       imgcolor: Colors.blue,
+      star_color: Colors.lightGreenAccent,
       isLast: false,
-      id: 1);
+      id: 1,
+      rating: 2.0);
   Items item3 = Items(
       title: "Hard",
       img: "assets/stars.png",
       imgcolor: Colors.red,
+      star_color: Colors.lime,
       isLast: false,
-      id: 2);
+      id: 2,
+      rating: 3.0);
   Items item4 = Items(
       title: "Theme",
       img: "assets/theme.png",
       imgcolor: Colors.deepPurple,
+      star_color: Colors.white,
       isLast: true,
-      id: 3);
+      id: 3,
+      rating: 0.0);
 
   @override
   Widget build(BuildContext context) {
@@ -101,23 +110,13 @@ class LevelSelectionState extends State<LevelSelection>
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: <Widget>[
                                   data.isLast == false
-                                      ? ColorFiltered(
-                                          colorFilter: ColorFilter.mode(
-                                            Colors
-                                                .white, // Specify the desired color
-                                            BlendMode.srcIn,
-                                          ),
-                                          child: Image.asset(
-                                            data.img,
-                                            width: 42,
-                                          ),
-                                        )
+                                      ? StarRating(rating:data.rating,size:28.0,star_color:data.star_color)
                                       : Image.asset(data.img, width: 42),
                                   SizedBox(height: 3),
                                   Text(
                                     data.title,
                                     style: TextStyle(
-                                      color: Colors.white,
+                                      color: data.star_color,
                                       fontSize: 16,
                                       fontFamily: "Sunny",
                                     ),
@@ -256,13 +255,17 @@ class Items {
   String title;
   String img;
   Color imgcolor;
+  Color star_color;
   bool isLast;
   int id;
+  double rating;
 
   Items(
       {required this.title,
       required this.img,
       required this.imgcolor,
+      required this.star_color,
       required this.isLast,
-      required this.id});
+      required this.id,
+      required this.rating});
 }

@@ -17,6 +17,7 @@ class DatabaseHelper {
   String row = 'row';
   String column = 'column';
   String count = 'count';
+  String stars = 'stars';
 
   DatabaseHelper._createInstance(); // Named constructor to create instance of DatabaseHelper
 
@@ -42,15 +43,15 @@ class DatabaseHelper {
   void _createDb(Database db, int newVersion) async {
     await db.execute(
         'CREATE TABLE $gameTableBeg($id INTEGER PRIMARY KEY AUTOINCREMENT, $levelname TEXT, '
-        '$isOpen BOOLEAN,$row INTEGER, $column INTEGER, $count INTEGER)');
+        '$isOpen BOOLEAN,$row INTEGER, $column INTEGER, $count INTEGER,$stars INTEGER)');
 
     await db.execute(
         'CREATE TABLE $gameTableInter($id INTEGER PRIMARY KEY AUTOINCREMENT, $levelname TEXT, '
-        '$isOpen BOOLEAN,$row INTEGER, $column INTEGER, $count INTEGER)');
+        '$isOpen BOOLEAN,$row INTEGER, $column INTEGER, $count INTEGER,$stars INTEGER)');
 
     await db.execute(
         'CREATE TABLE $gameTableAdvance($id INTEGER PRIMARY KEY AUTOINCREMENT, $levelname TEXT, '
-        '$isOpen BOOLEAN,$row INTEGER, $column INTEGER, $count INTEGER)');
+        '$isOpen BOOLEAN,$row INTEGER, $column INTEGER, $count INTEGER,$stars INTEGER)');
   }
 
   // Fetch Operation: Get all level objects from database
@@ -98,6 +99,26 @@ class DatabaseHelper {
           .rawQuery("UPDATE $gameTableAdvance SET isOpen=1 WHERE id=" + id.toString());
     }
   }
+
+
+
+  // Update Operation: Update a level object and save it to database
+  void updateStars(int id, int dificulty,int stars) async {
+    var db = await database;
+    var result;
+    if (dificulty == 0) {
+      result = await db
+          .rawQuery("UPDATE $gameTableBeg SET stars=$stars WHERE id=" + id.toString());
+    } else if (dificulty == 1) {
+      result = await db
+          .rawQuery("UPDATE $gameTableInter SET stars=$stars WHERE id=" + id.toString());
+    } else if (dificulty == 2) {
+      result = await db
+          .rawQuery("UPDATE $gameTableAdvance SET stars=$stars WHERE id=" + id.toString());
+    }
+  }
+
+
 
   // Delete Operation: Delete a level object from database
   Future<int?> deleteLevel(int id, int dificulty) async {

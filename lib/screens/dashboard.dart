@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'dart:io' show Platform, exit;
 import 'package:audioplayers/audioplayers.dart';
 import 'package:custom_mazeapp/models/level/level_item.dart';
+import 'package:custom_mazeapp/screens/star_rating.dart';
 import 'package:custom_mazeapp/utils/database_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:custom_mazeapp/screens/maze_screen.dart';
@@ -25,8 +26,6 @@ class DashboardScreenState extends State<DashboardScreen>
     with WidgetsBindingObserver {
   int dificultyLevel=0;
 
-
-
   AudioPlayer? player ;
   AudioCache? audioCache ;
   DatabaseHelper databaseHelper = DatabaseHelper();
@@ -37,6 +36,7 @@ class DashboardScreenState extends State<DashboardScreen>
   late DateTime backButtonPressTime;
   AppLifecycleState? _lastLifecycleState;
   late Color boxColor;
+  late Color starColor;
 
   @override
   void initState() {
@@ -47,10 +47,13 @@ class DashboardScreenState extends State<DashboardScreen>
       getList();
       if(dificultyLevel==0){
         boxColor=Colors.green;
+        starColor=Colors.cyanAccent;
       }else if(dificultyLevel==1){
         boxColor=Colors.blue;
+        starColor= Colors.lightGreenAccent;
       }else if(dificultyLevel==2){
         boxColor=Colors.red;
+        starColor=Colors.lime;
       }
       playAudio();
     });
@@ -156,7 +159,8 @@ class DashboardScreenState extends State<DashboardScreen>
                                       listlevel[index].levelName,
                                       listlevel[index].row,
                                       listlevel[index].column,
-                                      listlevel[index].count);
+                                      listlevel[index].count,
+                                  listlevel[index].stars);
                                   setState(() {});
                                 }
                               },
@@ -172,7 +176,7 @@ class DashboardScreenState extends State<DashboardScreen>
                                   ),
                                   child: Center(
                                     child: Stack(
-                                      children: [getLevelStatusWidget(index)],
+                                      children: [getLevelStatusWidget(index,)],
                                     ),
                                   ),
                                 ),
@@ -241,23 +245,34 @@ class DashboardScreenState extends State<DashboardScreen>
 
   Widget getLevelStatusWidget(int index) {
     return (listlevel[index].isOpen == 1)
-        ? Text(
-            listlevel[index].levelName,
-            style: TextStyle(fontFamily:"Sunny",
-                color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
-          )
+        ? Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(
+          listlevel[index].levelName,
+          style: TextStyle(fontFamily:"Sunny",
+              color: starColor, fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+        SizedBox(height: 3,),
+        Visibility(
+          visible: listlevel[index].stars != 0,
+          child: StarRating(rating: listlevel[index].stars.toDouble(),size:16.0,star_color: starColor,),
+        ),
+
+      ],
+    )
         : Icon(
             Icons.lock,
             color: Colors.white,
           );
   }
 
-  void onStartGame(int id, String level, int row, int column, int count) {
+  void onStartGame(int id, String level, int row, int column, int count,int stars) {
     stopAudio();
     Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (context) => MazeScreen(id, level, row, column, count,dificultyLevel,boxColor),
+          builder: (context) => MazeScreen(id, level, row, column, count,dificultyLevel,boxColor,stars),
         ));
   }
 }

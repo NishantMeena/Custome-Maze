@@ -7,8 +7,9 @@ class LevelItem {
   int _row = 0;
   int _column = 0;
   int _count=0;
+  int _stars=0;
 
-  LevelItem(this._id,this._levelName, this._isOpen, this._row, this._column,this._count);
+  LevelItem(this._id,this._levelName, this._isOpen, this._row, this._column,this._count,this._stars);
 
   int? get id => _id;
 
@@ -24,7 +25,7 @@ class LevelItem {
     map['row'] = _row;
     map['column'] = _column;
     map['count'] = _count;
-
+    map['stars'] = _stars;
     return map;
   }
 
@@ -36,6 +37,7 @@ class LevelItem {
     this.row = map['row'];
     this.column = map['column'];
     this.count = map['count'];
+    this.stars = map['stars'];
   }
 
   String get levelName => _levelName;
@@ -66,5 +68,11 @@ class LevelItem {
 
   set count(int value) {
     _count = value;
+  }
+
+  int get stars => _stars;
+
+  set stars(int value) {
+    _stars = value;
   }
 }
