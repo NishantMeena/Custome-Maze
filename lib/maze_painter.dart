@@ -138,6 +138,9 @@ class MazePainter extends ChangeNotifier implements CustomPainter {
   int? playerrow;
   int? playercol;
 
+  final double dashLength = 6.0;
+  final double gapLength = 6.0;
+
   ///This method initialize the maze by randomizing what wall will be disable
   void _createMaze() {
     var stack = Stack<Cell>();
@@ -318,6 +321,8 @@ class MazePainter extends ChangeNotifier implements CustomPainter {
       _cellSize = size.height / (rows + 1);
     }
 
+    //_cellSize = size.width / columns;
+
     //margin
     _hMargin = (size.width - columns * _cellSize) / 2;
     _vMargin = (size.height - rows * _cellSize) / 2;
@@ -325,7 +330,6 @@ class MazePainter extends ChangeNotifier implements CustomPainter {
     canvas.translate(_hMargin, _vMargin);
     for (var v in _cells) {
       for (int i = 0; i < v.length; i++) {
-        PathItem pathItem = PathItem();
         if (v[i].topWall) {
           canvas.drawLine(
               Offset(v[i].col * _cellSize, v[i].row * _cellSize),
@@ -358,20 +362,68 @@ class MazePainter extends ChangeNotifier implements CustomPainter {
 
     // Draw the solution path
     if (solution != null) {
-      // draw the solution path if it exists
-      // set the paint color to red for the solution path
-      Paint paint = Paint()..color = Colors.green;
+      Paint dashedLinePaint = Paint()
+        ..color = Colors.red
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.0;
 
-      // iterate over the cells in the solution path
-      for (Cell cell in solution!) {
-        // calculate the pixel position of the center of the cell
-        centerX = (cell.col + 0.5) * _cellSize;
-        centerY = (cell.row + 0.5) * _cellSize;
+      for (int i = 0; i < solution!.length - 1; i++) {
+        Cell currentCell = solution![i];
+        Cell nextCell = solution![i + 1];
 
-        // draw a small dot at the center of the cell to indicate it is part of the solution path
-        canvas.drawCircle(Offset(centerX, centerY), _cellSize / 20, paint);
+        double currentX = (currentCell.col + 0.5) * _cellSize;
+        double currentY = (currentCell.row + 0.5) * _cellSize;
+        double nextX = (nextCell.col + 0.5) * _cellSize;
+        double nextY = (nextCell.row + 0.5) * _cellSize;
+
+        double deltaX = nextX - currentX;
+        double deltaY = nextY - currentY;
+        double distance = math.sqrt(deltaX * deltaX + deltaY * deltaY);
+        double dashAngle = math.atan2(deltaY, deltaX);
+
+        double dashCount = (distance / (dashLength + gapLength)).floorToDouble();
+        double dashX = math.cos(dashAngle) * dashLength;
+        double dashY = math.sin(dashAngle) * dashLength;
+        double gapX = math.cos(dashAngle) * gapLength;
+        double gapY = math.sin(dashAngle) * gapLength;
+
+        for (int j = 0; j < dashCount; j++) {
+          double startX = currentX + j * (dashX + gapX);
+          double startY = currentY + j * (dashY + gapY);
+          double endX = startX + dashX;
+          double endY = startY + dashY;
+
+          canvas.drawLine(Offset(startX, startY), Offset(endX, endY), dashedLinePaint);
+        }
       }
     }
+
+
+   /* if (solution != null) {
+      // Draw the solution path if it exists
+      // Set the paint color for the solution path
+      Paint paint = Paint()..color = Colors.green;
+
+      // Iterate over the cells in the solution path
+      for (int i = 0; i < solution!.length - 1; i++) {
+        Cell currentCell = solution![i];
+        Cell nextCell = solution![i + 1];
+
+        // Calculate the pixel positions of the centers of the current and next cells
+        double currentX = (currentCell.col + 0.5) * _cellSize;
+        double currentY = (currentCell.row + 0.5) * _cellSize;
+        double nextX = (nextCell.col + 0.5) * _cellSize;
+        double nextY = (nextCell.row + 0.5) * _cellSize;
+
+        // Draw a line connecting the centers of the current and next cells
+        canvas.drawLine(
+          Offset(currentX, currentY),
+          Offset(nextX, nextY),
+          paint,
+        );
+      }
+    }*/
+
 
     // draw others
     if (finishImage != null) {

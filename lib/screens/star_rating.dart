@@ -29,7 +29,7 @@ class StarRating extends StatelessWidget {
             Icons.star_border,
             color: star_color,
             size: size,
-          ),SizedBox(height: 12,)],):
+          ),SizedBox(height: 1,)],):
           Icon(
             Icons.star_border,
             color: star_color,

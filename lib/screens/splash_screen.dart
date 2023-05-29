@@ -1,7 +1,7 @@
 import 'package:custom_mazeapp/models/level/level_item.dart';
 import 'package:custom_mazeapp/screens/level_selection.dart';
 import 'package:custom_mazeapp/utils/Constants.dart';
-import 'package:custom_mazeapp/utils/database_helper.dart';
+import 'package:custom_mazeapp/utils/DatabaseHelper.dart';
 import 'package:flutter/material.dart';
 import 'package:custom_mazeapp/screens/dashboard.dart';
 import 'dart:async';

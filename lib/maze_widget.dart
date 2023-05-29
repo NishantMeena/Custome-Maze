@@ -3,7 +3,6 @@ import 'dart:ui' as ui;
 import 'package:custom_mazeapp/models/cell.dart';
 import 'package:custom_mazeapp/models/path_item.dart';
 import 'package:custom_mazeapp/screens/maze_screen.dart';
-import 'package:custom_mazeapp/utils/MazeSolver.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
@@ -101,6 +100,7 @@ class MazeState extends State<Maze> {
   bool isDrawSelect = false;
   bool isDraw = false;
 
+
   @override
   void initState() {
     super.initState();
@@ -148,46 +148,62 @@ class MazeState extends State<Maze> {
 
   @override
   Widget build(BuildContext context) {
+
+
     if (widget.sel == 0) {
+      isDraw=false;
       _mazePainter?.removeSolution();
     } else {
-      solutionDraw();
+      if(isDraw==false){
+        isDraw=true;
+        solutionDraw();
+      }
+
     }
 
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.transparent,
       ),
-      body: Container(child: Builder(builder: (context) {
-        if (_loaded) {
-          return GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onVerticalDragUpdate: (info) async {
-                widget.sel = 0;
-                _mazePainter?.updatePosition(info.localPosition);
-                //_mazePainter.solution =await _mazePainter.computeSolutionPath(Cell(0, 0));
-                _mazePainter?.notifyListeners();
-              },
-              child: Container(
-                child: Stack(
-                  children: [
-                    CustomPaint(
+      body: Container(
+        child: Builder(
+          builder: (context) {
+            if (_loaded) {
+              return GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onVerticalDragUpdate: (info) async {
+                  widget.sel = 0;
+                  _mazePainter?.updatePosition(info.localPosition);
+                  _mazePainter?.notifyListeners();
+                },
+                child: Container(
+                  // Set the height of the CustomPaint to fill the available space
+                  height: double.infinity,
+                  child: Stack(
+                    children: [
+                      CustomPaint(
                         painter: _mazePainter,
-                        size: Size(widget.width ?? context.width,
-                            widget.height ?? context.height)),
-                  ],
+                        size: Size(
+                          widget.width ?? context.width,
+                          widget.height ?? context.height,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ));
-        } else {
-          if (widget.loadingWidget != null) {
-            return widget.loadingWidget!;
-          } else {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
-          }
-        }
-      })),
+              );
+            } else {
+              if (widget.loadingWidget != null) {
+                return widget.loadingWidget!;
+              } else {
+                return const Center(
+                  child: CircularProgressIndicator(),
+                );
+              }
+            }
+          },
+        ),
+      ),
     );
   }
 

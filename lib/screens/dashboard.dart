@@ -4,7 +4,7 @@ import 'dart:io' show Platform, exit;
 import 'package:audioplayers/audioplayers.dart';
 import 'package:custom_mazeapp/models/level/level_item.dart';
 import 'package:custom_mazeapp/screens/star_rating.dart';
-import 'package:custom_mazeapp/utils/database_helper.dart';
+import 'package:custom_mazeapp/utils/DatabaseHelper.dart';
 import 'package:flutter/material.dart';
 import 'package:custom_mazeapp/screens/maze_screen.dart';
 import 'package:flutter/services.dart';
@@ -146,6 +146,7 @@ class DashboardScreenState extends State<DashboardScreen>
                       child: Padding(
                         padding: EdgeInsets.symmetric(horizontal: 10),
                         child: GridView.builder(
+                          physics:  BouncingScrollPhysics(),
                           gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
                               maxCrossAxisExtent: 100,
                               crossAxisSpacing: 5,

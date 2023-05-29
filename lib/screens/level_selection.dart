@@ -2,7 +2,6 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:buttons_flutter/buttons_flutter.dart';
 import 'package:custom_mazeapp/screens/dashboard.dart';
 import 'package:custom_mazeapp/screens/star_rating.dart';
-import 'package:custom_mazeapp/utils/background_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'dart:io' show Platform, exit;
@@ -47,7 +46,7 @@ class LevelSelectionState extends State<LevelSelection>
       id: 2,
       rating: 3.0);
   Items item4 = Items(
-      title: "Theme",
+      title: "Settings",
       img: "assets/theme.png",
       imgcolor: Colors.deepPurple,
       star_color: Colors.white,
@@ -238,7 +237,11 @@ class LevelSelectionState extends State<LevelSelection>
       stopAudio();
       moveNext(item.id);
     } else {
-      print("theme selectr");
+      //print("theme selectr");
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Comming Soon'),
+        backgroundColor: Colors.green,
+      ));
     }
   }
 

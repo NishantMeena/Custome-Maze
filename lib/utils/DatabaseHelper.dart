@@ -7,7 +7,6 @@ import 'package:path_provider/path_provider.dart';
 class DatabaseHelper {
   static DatabaseHelper? _databaseHelper; // Singleton DatabaseHelper
   static Database? _database; // Singleton Database
-
   String gameTableBeg = 'game_level_beginner';
   String gameTableInter = 'game_level_intermediate';
   String gameTableAdvance = 'game_level_advance';
