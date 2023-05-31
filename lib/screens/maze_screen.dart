@@ -1,9 +1,5 @@
 import 'dart:async';
-import 'dart:math';
-import 'dart:typed_data';
-
 import 'package:audioplayers/audioplayers.dart';
-import 'package:circular_countdown_timer/circular_countdown_timer.dart';
 import 'package:custom_mazeapp/maze_widget.dart';
 import 'package:custom_mazeapp/models/item.dart';
 import 'package:custom_mazeapp/models/level/level_item.dart';
@@ -17,7 +13,6 @@ import 'package:lottie/lottie.dart';
 import 'package:material_dialogs/widgets/buttons/icon_button.dart';
 import 'package:quickalert/quickalert.dart';
 import 'package:material_dialogs/material_dialogs.dart';
-import '../utils/Constants.dart';
 
 class MazeScreen extends StatefulWidget {
   int? id;
@@ -25,21 +20,11 @@ class MazeScreen extends StatefulWidget {
   String levelName = "";
   Color boxColor = Colors.green;
 
-  MazeScreen(int id, String levelName, int row, int column, int count,
-      int dificulty, Color boxColor, int stars) {
-    this.id = id;
-    this.levelName = levelName;
-    this.row = row;
-    this.column = column;
-    this.count = count;
-    this.dificulty = dificulty;
-    this.boxColor = boxColor;
-    this.stars = stars;
-  }
+  MazeScreen(int this.id, this.levelName, this.row, this.column, this.count,
+      this.dificulty, this.boxColor, this.stars);
 
   @override
-  _MazeScreenState createState() => _MazeScreenState(
-      id!, levelName, row, column, count, dificulty, boxColor, stars);
+  _MazeScreenState createState() => _MazeScreenState(id!, levelName, row, column, count, dificulty, boxColor, stars);
 }
 
 class _MazeScreenState extends State<MazeScreen> with WidgetsBindingObserver {
@@ -88,7 +73,7 @@ class _MazeScreenState extends State<MazeScreen> with WidgetsBindingObserver {
     }
     timer = Timer.periodic(Duration(seconds: 1), (timer) {
       setState(() {
-        if (second > 0) {
+         if (second > 0) {
           isProgressColor = true;
           rankSecond = second;
           second--;
@@ -139,6 +124,10 @@ class _MazeScreenState extends State<MazeScreen> with WidgetsBindingObserver {
     }
     mazePath(myRow, myColumn);
     WidgetsBinding.instance.addObserver(this);
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       startTimer(reset: false);
 
@@ -150,6 +139,7 @@ class _MazeScreenState extends State<MazeScreen> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    SystemChrome.setPreferredOrientations(DeviceOrientation.values);
     stopTimer(reset: false, pause: 0);
     super.dispose();
   }
@@ -224,169 +214,158 @@ class _MazeScreenState extends State<MazeScreen> with WidgetsBindingObserver {
         return false;
       },
       child: Scaffold(
-          appBar: AppBar(
-            backgroundColor: Colors.transparent,
-            title: Container(
-              child: gsetTitleBar(),
+        appBar: AppBar(
+          automaticallyImplyLeading: false,
+          backgroundColor: Colors.transparent,
+          title: gsetTitleBar(),
+        ),
+        body: Column(
+          children: [
+            Expanded(
+              child: myMaze(context, myRow, myColumn),
             ),
-          ),
-          body: Stack(
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(top: 5.0),
-                child: Column(
-                  children: [
-                    Expanded(
-                        flex: 10,
-                        child: Stack(
-                          children: [
-                            myMaze(context, myRow, myColumn),
-                          ],
-                        )),
-                    Expanded(
-                      flex: 1,
-                      child: Container(
-                        color: Colors.transparent,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Expanded(
-                              flex: 1,
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.start,
-                                children: [
-                                  SizedBox(
-                                    width: 15,
-                                  ),
-                                  IconButton(
-                                      onPressed: handleClick,
-                                      icon: Icon(
-                                        Icons.refresh_outlined,
-                                        color: boxColor,
-                                      )),
-                                  IconButton(
-                                      onPressed: () {
-                                        setState(() {
-                                          if (sel == 0) {
-                                            sel = 1;
-                                            solTapOnce = true;
-                                          } else {
-                                            sel = 0;
-                                          }
-                                        });
-                                      },
-                                      icon: sel == 0
-                                          ? Icon(
-                                              Icons.lightbulb_outline,
-                                              color: boxColor,
-                                            )
-                                          : Icon(
-                                              Icons.lightbulb,
-                                              color: boxColor,
-                                            ))
-                                ],
-                              ),
-                            ),
-                            Expanded(
-                                flex: 1,
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    SizedBox(
-                                      width: 55,
-                                      height: 55,
-                                      child: Stack(
-                                          fit: StackFit.expand,
-                                          children: [
-                                            CircularProgressIndicator(
-                                              strokeWidth: 3,
-                                              value: second / maxSecond,
-                                            ),
-                                            Center(child: buildTimer())
-                                          ]),
-                                    )
-                                  ],
-                                )),
-                            Expanded(
-                              flex: 1,
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.start,
-                                children: [
-                                  IconButton(
-                                      onPressed: () {
-                                        setState(() {
-                                          if (isPlaying) {
-                                            isPlaying = false;
-                                            playAudio("game_music.mp3", true);
-                                          } else {
-                                            isPlaying = true;
-                                            stopAudio();
-                                          }
-                                        });
-                                      },
-                                      icon: isPlaying
-                                          ? Icon(
-                                              Icons.volume_off,
-                                              color: boxColor,
-                                            )
-                                          : Icon(
-                                              Icons.volume_up,
-                                              color: boxColor,
-                                            )),
-                                  IconButton(
-                                      onPressed: () {
-                                        goBack();
-                                      },
-                                      icon: Icon(
-                                        Icons.back_hand,
-                                        color: boxColor,
-                                      )),
-                                ],
-                              ),
-                            )
-                          ],
+            SizedBox(
+              height: 5,
+            ),
+            Container(
+              padding: EdgeInsets.all(8.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Expanded(
+                    flex: 1,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        SizedBox(
+                          width: 15,
                         ),
-                      ),
-                    )
-                  ],
-                ),
+                        IconButton(
+                            onPressed: handleClick,
+                            icon: Icon(
+                              Icons.refresh_outlined,
+                              color: boxColor,
+                            )),
+                        IconButton(
+                            onPressed: () {
+                              setState(() {
+                                if (sel == 0) {
+                                  sel = 1;
+                                  solTapOnce = true;
+                                } else {
+                                  sel = 0;
+                                }
+                              });
+                            },
+                            icon: sel == 0
+                                ? Icon(
+                                    Icons.lightbulb_outline,
+                                    color: boxColor,
+                                  )
+                                : Icon(
+                                    Icons.lightbulb,
+                                    color: boxColor,
+                                  ))
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                      flex: 1,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          SizedBox(
+                            width: 55,
+                            height: 55,
+                            child: Stack(fit: StackFit.expand, children: [
+                              CircularProgressIndicator(
+                                strokeWidth: 3,
+                                value: second / maxSecond,
+                              ),
+                              Center(child: buildTimer())
+                            ]),
+                          )
+                        ],
+                      )),
+                  Expanded(
+                    flex: 1,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        IconButton(
+                            onPressed: () {
+                              setState(() {
+                                if (isPlaying) {
+                                  isPlaying = false;
+                                  playAudio("game_music.mp3", true);
+                                } else {
+                                  isPlaying = true;
+                                  stopAudio();
+                                }
+                              });
+                            },
+                            icon: isPlaying
+                                ? Icon(
+                                    Icons.volume_off,
+                                    color: boxColor,
+                                  )
+                                : Icon(
+                                    Icons.volume_up,
+                                    color: boxColor,
+                                  )),
+                        IconButton(
+                            onPressed: () {
+                              goBack();
+                            },
+                            icon: Icon(
+                              Icons.back_hand,
+                              color: boxColor,
+                            )),
+                      ],
+                    ),
+                  )
+                ],
               ),
-            ],
-          )),
+            )
+          ],
+        ),
+      ),
     );
   }
 
   Widget gsetTitleBar() {
     return SizedBox(
-      width: double.infinity,
       height: 30,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
-          "Level : $levelName",
-          style: TextStyle(fontFamily: "Sunny", color: starColor),
-        ),
+            "Level: $levelName",
+            style: TextStyle(fontFamily: "Sunny", color: starColor),
+          ),
           Visibility(
             visible: myStars != 0,
             child: Row(
               children: [
-                SizedBox(
-                  width: 5,
+                const SizedBox(
+                  width: 10,
                 ),
                 StarRating(
-                    rating: myStars.toDouble(),
-                    size: 10.0,
-                    star_color: starColor)
+                  rating: myStars.toDouble(),
+                  size: 10.0,
+                  star_color: starColor,
+                ),
               ],
             ),
           ),
           IconButton(
-              onPressed: () {},
-              icon: Icon(
-                Icons.help_outline,
-                color: starColor,
-              ))],
+            onPressed: () {},
+            icon: Icon(
+              Icons.help_outline,
+              color: starColor,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -404,7 +383,7 @@ class _MazeScreenState extends State<MazeScreen> with WidgetsBindingObserver {
                   fontSize: 10),
             ),
           )
-        : Text("");
+        : const Text("");
   }
 
   Widget myMaze(BuildContext context, int row, int column) {
@@ -412,12 +391,15 @@ class _MazeScreenState extends State<MazeScreen> with WidgetsBindingObserver {
         sel: sel,
         playerColor: playerColor,
         player: MazeItem("assets/ghost.png", ImageType.asset),
-        playerUp: MazeItem("assets/ghostupper.png", ImageType.asset),
-        playerDown: MazeItem("assets/ghostdownmove.png", ImageType.asset),
-        playerLeft: MazeItem("assets/ghostleftmove.png", ImageType.asset),
-        playerRight: MazeItem("assets/ghostrightmove.png", ImageType.asset),
-        columns: myColumn,
-        rows: myRow,
+        playerUp: MazeItem("assets/playerimage/playerup1.png", ImageType.asset),
+        playerDown:
+            MazeItem("assets/playerimage/playerdown1.png", ImageType.asset),
+        playerLeft:
+            MazeItem("assets/playerimage/playerleft1.png", ImageType.asset),
+        playerRight:
+            MazeItem("assets/playerimage/playerright1.png", ImageType.asset),
+        columns: column,
+        rows: row,
         wallThickness: 4.0,
         wallColor: boxColor,
         pointColor: boxColor,
@@ -462,19 +444,14 @@ class _MazeScreenState extends State<MazeScreen> with WidgetsBindingObserver {
               onRestart(levelItem.id!, levelItem.levelName, levelItem.row,
                   levelItem.column, levelItem.count, levelItem.stars);
             } else {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => DashboardScreen(dificultyLevel),
-                ),
-              );
+              gotoDashboard();
             }
             setState(() {});
           },
           text: 'Next',
           iconData: Icons.done,
           color: boxColor,
-          textStyle: TextStyle(fontFamily: "Sunny", color: Colors.white),
+          textStyle: const TextStyle(fontFamily: "Sunny", color: Colors.white),
           iconColor: Colors.white,
         ),
       ],
@@ -494,14 +471,18 @@ class _MazeScreenState extends State<MazeScreen> with WidgetsBindingObserver {
         onRestart(levelItem.id!, levelItem.levelName, levelItem.row,
             levelItem.column, levelItem.count, levelItem.stars);
       } else {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => DashboardScreen(dificultyLevel),
-          ),
-        );
+       gotoDashboard();
       }
     });
+  }
+
+  void gotoDashboard(){
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => DashboardScreen(dificultyLevel),
+      ),
+    );
   }
 
   int calculateStars() {
@@ -549,11 +530,7 @@ class _MazeScreenState extends State<MazeScreen> with WidgetsBindingObserver {
   }
 
   void goBack() {
-    Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => DashboardScreen(dificultyLevel),
-        ));
+   gotoDashboard();
   }
 
   Widget getVolumeIcon(bool isplay) {

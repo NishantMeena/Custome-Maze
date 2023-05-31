@@ -43,6 +43,10 @@ class DashboardScreenState extends State<DashboardScreen>
     super.initState();
     dificultyLevel=widget.dificulty;
     WidgetsBinding.instance.addObserver(this);
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       getList();
       if(dificultyLevel==0){
@@ -75,6 +79,7 @@ class DashboardScreenState extends State<DashboardScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    SystemChrome.setPreferredOrientations(DeviceOrientation.values);
     super.dispose();
   }
 

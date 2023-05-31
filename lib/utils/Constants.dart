@@ -1,47 +1,43 @@
 import 'package:custom_mazeapp/models/level/level_item.dart';
 
 class Constants {
-  static const String ROW_NUMBER = "row_num";
-  static const String COLUMN_NUMBER = "column_num";
-  static const String LEVEL = "level";
-  static const int DEF_LEVEL = 1;
   static int DEF_ROW_NUMBER = 15;
   static int DEF_COLUMN_NUMBER = 10;
 
   List<LevelItem> getLevelList0() {
     return <LevelItem>[
-      LevelItem(null, "1", 1, 4, 10, 60,0),
-      LevelItem(null, "2", 0, 5, 11, 60,0),
-      LevelItem(null, "3", 0, 6, 12, 60,0),
-      LevelItem(null, "4", 0, 7, 13, 60,0),
-      LevelItem(null, "5", 0, 8, 14, 60,0),
-      LevelItem(null, "6", 0, 9, 15, 60,0),
-      LevelItem(null, "7", 0, 10, 10, 60,0),
-      LevelItem(null, "8", 0, 11, 11, 60,0),
-      LevelItem(null, "9", 0, 12, 12, 60,0),
-      LevelItem(null, "10", 0, 13, 13, 60,0),
-      LevelItem(null, "11", 0, 14, 14, 60,0),
-      LevelItem(null, "12", 0, 15, 15, 60,0),
-      LevelItem(null, "13", 0, 16, 10, 60,0),
-      LevelItem(null, "14", 0, 17, 11, 60,0),
-      LevelItem(null, "15", 0, 18, 12, 60,0),
-      LevelItem(null, "16", 0, 19, 13, 60,0),
-      LevelItem(null, "17", 0, 20, 14, 60,0),
-      LevelItem(null, "18", 0, 21, 15, 60,0),
-      LevelItem(null, "19", 0, 22, 10, 60,0),
-      LevelItem(null, "20", 0, 23, 11, 60,0),
-      LevelItem(null, "21", 0, 24, 12, 60,0),
-      LevelItem(null, "22", 0, 25, 13, 60,0),
-      LevelItem(null, "23", 0, 26, 14, 60,0),
-      LevelItem(null, "24", 0, 27, 15, 60,0),
-      LevelItem(null, "25", 0, 28, 10, 60,0),
-      LevelItem(null, "25", 0, 29, 11, 60,0),
-      LevelItem(null, "25", 0, 30, 12, 60,0),
-      LevelItem(null, "25", 0, 31, 13, 60,0),
-      LevelItem(null, "25", 0, 32, 14, 60,0),
-      LevelItem(null, "25", 0, 33, 15, 60,0),
+      LevelItem(null, "1", 1, 10, 10, 60,0),
+      LevelItem(null, "2", 0, 11, 11, 60,0),
+      LevelItem(null, "3", 0, 12, 12, 60,0),
+      LevelItem(null, "4", 0, 13, 13, 60,0),
+      LevelItem(null, "5", 0, 14, 14, 60,0),
+      LevelItem(null, "6", 0, 15, 15, 60,0),
+      LevelItem(null, "7", 0, 16, 10, 60,0),
+      LevelItem(null, "8", 0, 17, 11, 60,0),
+      LevelItem(null, "9", 0, 18, 12, 60,0),
+      LevelItem(null, "10", 0, 19, 13, 60,0),
+      LevelItem(null, "11", 0, 10, 14, 60,0),
+      LevelItem(null, "12", 0, 21, 15, 60,0),
+      LevelItem(null, "13", 0, 22, 10, 60,0),
+      LevelItem(null, "14", 0, 23, 11, 60,0),
+      LevelItem(null, "15", 0, 24, 12, 60,0),
+      LevelItem(null, "16", 0, 25, 13, 60,0),
+      LevelItem(null, "17", 0, 26, 14, 60,0),
+      LevelItem(null, "18", 0, 27, 15, 60,0),
+      LevelItem(null, "19", 0, 28, 10, 60,0),
+      LevelItem(null, "20", 0, 29, 11, 60,0),
+      LevelItem(null, "21", 0, 30, 12, 60,0),
+      LevelItem(null, "22", 0, 31, 13, 60,0),
+      LevelItem(null, "23", 0, 32, 14, 60,0),
+      LevelItem(null, "24", 0, 33, 15, 60,0),
       LevelItem(null, "25", 0, 34, 10, 60,0),
       LevelItem(null, "25", 0, 35, 11, 60,0),
+      LevelItem(null, "25", 0, 36, 12, 60,0),
+      LevelItem(null, "25", 0, 37, 13, 60,0),
+      LevelItem(null, "25", 0, 38, 14, 60,0),
+      LevelItem(null, "25", 0, 39, 15, 60,0),
+      LevelItem(null, "25", 0, 40, 10, 60,0),
+      LevelItem(null, "25", 0, 41, 11, 60,0),
     ];
   }
 

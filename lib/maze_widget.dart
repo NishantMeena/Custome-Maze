@@ -19,27 +19,26 @@ import 'models/item.dart';
 ///if the player pass through a checkout at [onCheckpoint]
 class Maze extends StatefulWidget {
   ///Default constructor
-  Maze(
-      {required this.player,
-      required this.playerUp,
-      required this.playerDown,
-      required this.playerLeft,
-      required this.playerRight,
-      this.checkpoints = const [],
-      this.columns = 10,
-      this.finish,
-      this.height,
-      this.loadingWidget,
-      this.onCheckpoint,
-      this.onFinish,
-      this.onDrawPath,
-      this.rows = 7,
-      this.wallColor = Colors.black,
-      this.pointColor = Colors.black,
-      this.wallThickness = 3.0,
-      this.width,
-      this.sel = 0,
-      required this.playerColor});
+  Maze({required this.player,
+    required this.playerUp,
+    required this.playerDown,
+    required this.playerLeft,
+    required this.playerRight,
+    this.checkpoints = const [],
+    this.columns = 10,
+    this.finish,
+    this.height,
+    this.loadingWidget,
+    this.onCheckpoint,
+    this.onFinish,
+    this.onDrawPath,
+    this.rows = 7,
+    this.wallColor = Colors.black,
+    this.pointColor = Colors.black,
+    this.wallThickness = 3.0,
+    this.width,
+    this.sel = 0,
+    required this.playerColor});
 
   int sel;
   Color playerColor;
@@ -110,7 +109,7 @@ class MazeState extends State<Maze> {
   void solutionDraw() async {
     _mazePainter?.isSolSelect = true;
     _mazePainter?.solution =
-        await _mazePainter?.computeSolutionPath();
+    await _mazePainter?.computeSolutionPath();
     _mazePainter?.notifyListeners();
   }
 
@@ -124,8 +123,11 @@ class MazeState extends State<Maze> {
     final checkpoints = await Future.wait(
         widget.checkpoints.map((c) async => await _itemToImage(c)));
     final finishImage =
-        widget.finish != null ? await _itemToImage(widget.finish!) : null;
-
+    widget.finish != null ? await _itemToImage(widget.finish!) : null;
+    final Size screenSize = Size(
+      widget.width ?? MediaQuery.of(context).size.width,
+      widget.height ?? MediaQuery.of(context).size.height,
+    );
     _mazePainter = MazePainter(
       checkpointsImages: checkpoints,
       columns: widget.columns,
@@ -142,70 +144,73 @@ class MazeState extends State<Maze> {
       rows: widget.rows,
       wallColor: widget.wallColor ?? Colors.black,
       wallThickness: widget.wallThickness ?? 4.0,
+      scrSize: screenSize
     );
-    setState(() => _loaded = true);
+
+    if(mounted){
+      setState(() => _loaded = true);
+    }
+
   }
 
   @override
   Widget build(BuildContext context) {
-
-
     if (widget.sel == 0) {
-      isDraw=false;
+      isDraw = false;
       _mazePainter?.removeSolution();
     } else {
-      if(isDraw==false){
-        isDraw=true;
+      if (isDraw == false) {
+        isDraw = true;
         solutionDraw();
       }
-
     }
 
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.transparent,
       ),
-      body: Container(
-        child: Builder(
-          builder: (context) {
-            if (_loaded) {
-              return GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onVerticalDragUpdate: (info) async {
-                  widget.sel = 0;
-                  _mazePainter?.updatePosition(info.localPosition);
-                  _mazePainter?.notifyListeners();
-                },
-                child: Container(
-                  // Set the height of the CustomPaint to fill the available space
-                  height: double.infinity,
-                  child: Stack(
-                    children: [
-                      CustomPaint(
+      body: LayoutBuilder(
+        builder: (BuildContext context, BoxConstraints constraints) {
+          return Center(
+            child: Container(
+              height: MediaQuery.of(context).size.height * 0.8, // Adjust the value as needed
+              child: Builder(
+                builder: (context) {
+                  if (_loaded) {
+                    return GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onVerticalDragUpdate: (info) async {
+                        widget.sel = 0;
+                        _mazePainter?.updatePosition(info.localPosition);
+                        _mazePainter?.notifyListeners();
+                      },
+                      child: CustomPaint(
                         painter: _mazePainter,
+                       //size: MediaQuery.of(context).size
                         size: Size(
-                          widget.width ?? context.width,
-                          widget.height ?? context.height,
+                          widget.width ?? constraints.maxWidth,
+                          widget.height ?? constraints.maxHeight,
                         ),
                       ),
-                    ],
-                  ),
-                ),
-              );
-            } else {
-              if (widget.loadingWidget != null) {
-                return widget.loadingWidget!;
-              } else {
-                return const Center(
-                  child: CircularProgressIndicator(),
-                );
-              }
-            }
-          },
-        ),
+                    );
+                  } else {
+                    if (widget.loadingWidget != null) {
+                      return widget.loadingWidget!;
+                    } else {
+                      return const Center(
+                        child: CircularProgressIndicator(),
+                      );
+                    }
+                  }
+                },
+              ),
+            ),
+          );
+        },
       ),
     );
   }
+
 
   Future<ui.Image> _itemToImage(MazeItem item) {
     switch (item.type) {
@@ -247,8 +252,16 @@ class MazeState extends State<Maze> {
 /// Extension to get screen size
 extension ScreenSizeExtension on BuildContext {
   /// Gets the current height
-  double get height => MediaQuery.of(this).size.height;
+  double get height =>
+      MediaQuery
+          .of(this)
+          .size
+          .height;
 
   /// Gets the current width
-  double get width => MediaQuery.of(this).size.width;
+  double get width =>
+      MediaQuery
+          .of(this)
+          .size
+          .width;
 }

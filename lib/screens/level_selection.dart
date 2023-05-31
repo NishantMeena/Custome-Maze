@@ -28,7 +28,7 @@ class LevelSelectionState extends State<LevelSelection>
       star_color: Colors.cyanAccent,
       isLast: false,
       id: 0,
-  rating: 1.0);
+      rating: 1.0);
   Items item2 = Items(
       title: "Classic",
       img: "assets/stars.png",
@@ -56,7 +56,11 @@ class LevelSelectionState extends State<LevelSelection>
 
   @override
   Widget build(BuildContext context) {
-    List<Items> myList = [item1, item2, item3, item4];
+    List<Items> myList = [
+      item1,
+      item2,
+      item3 , item4
+    ];
     return Scaffold(
       body: WillPopScope(
         onWillPop: () async {
@@ -109,7 +113,10 @@ class LevelSelectionState extends State<LevelSelection>
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: <Widget>[
                                   data.isLast == false
-                                      ? StarRating(rating:data.rating,size:28.0,star_color:data.star_color)
+                                      ? StarRating(
+                                          rating: data.rating,
+                                          size: 28.0,
+                                          star_color: data.star_color)
                                       : Image.asset(data.img, width: 42),
                                   SizedBox(height: 3),
                                   Text(
@@ -141,12 +148,12 @@ class LevelSelectionState extends State<LevelSelection>
                       IconButton(
                           onPressed: () {
                             setState(() {
-                              if(isPlaying){
+                              if (isPlaying) {
                                 playAudio();
-                                isPlaying=false;
-                              }else{
+                                isPlaying = false;
+                              } else {
                                 stopAudio();
-                                isPlaying=true;
+                                isPlaying = true;
                               }
                             });
                           },
@@ -188,6 +195,10 @@ class LevelSelectionState extends State<LevelSelection>
   @override
   void initState() {
     WidgetsBinding.instance.addObserver(this);
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       playAudio();
     });
@@ -196,6 +207,7 @@ class LevelSelectionState extends State<LevelSelection>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    SystemChrome.setPreferredOrientations(DeviceOrientation.values);
     super.dispose();
   }
 
@@ -204,7 +216,6 @@ class LevelSelectionState extends State<LevelSelection>
     setState(() {
       _lastLifecycleState = state;
       if (state == AppLifecycleState.paused) {
-
       } else if (state == AppLifecycleState.resumed) {
         setState(() {});
       }
@@ -212,8 +223,8 @@ class LevelSelectionState extends State<LevelSelection>
   }
 
   void playAudio() async {
-    player=AudioPlayer();
-    audioCache=AudioCache();
+    player = AudioPlayer();
+    audioCache = AudioCache();
     int timesPlayed = 0;
     const timestoPlay = 10;
     player = await audioCache?.play('magic.mp3');
