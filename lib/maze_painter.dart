@@ -1,11 +1,10 @@
 import 'dart:async';
 import 'dart:collection';
 import 'dart:math' as math;
-import 'dart:typed_data';
 import 'dart:ui' as ui;
+import 'package:custom_mazeapp/models/item.dart';
 import 'package:custom_mazeapp/models/path_item.dart';
 import 'package:flutter/material.dart' hide Stack;
-import 'package:flutter/services.dart';
 import 'models/cell.dart';
 import 'models/item_position.dart';
 import 'models/stack.dart';
@@ -25,12 +24,10 @@ enum Direction {
   right
 }
 
-///Maze Painter
-///Draws the maze based on params
+/// Maze Painter
+/// Draws the maze based on params
 class MazePainter extends ChangeNotifier implements CustomPainter {
-//this list for store each cell wall condition...
-
-  ///Default constructor
+  /// Default constructor
   MazePainter({
     required this.playerImage,
     required this.playerImageUp,
@@ -47,6 +44,7 @@ class MazePainter extends ChangeNotifier implements CustomPainter {
     this.rows = 10,
     this.wallColor = Colors.black,
     this.wallThickness = 4.0,
+    required this.scrSize
   }) {
     _wallPaint
       ..color = wallColor
@@ -55,7 +53,6 @@ class MazePainter extends ChangeNotifier implements CustomPainter {
       ..strokeWidth = wallThickness;
 
     _exitPaint..color = wallColor;
-
 
     _playerPaint
       ..color = playerColor
@@ -67,59 +64,62 @@ class MazePainter extends ChangeNotifier implements CustomPainter {
             col: _randomizer.nextInt(columns), row: _randomizer.nextInt(rows)))
         .toList();
 
+
     _createMaze();
   }
 
+  final Size scrSize;
 
   final Color playerColor;
-  ///Images for checkpoints
+
+  /// Images for checkpoints
   final List<ui.Image> checkpointsImages;
 
-  ///Number of collums
+  /// Number of collums
   final int columns;
 
-  ///Image for player
+  /// Image for player
   final ui.Image? finishImage;
 
-  ///Callback when the player reach a checkpoint
+  /// Callback when the player reach a checkpoint
   final Function(int)? onCheckpoint;
 
-  ///Callback when the player reach the finish
+  /// Callback when the player reach the finish
   final Function? onFinish;
   final Function(List<PathItem>)? onDrawPath;
 
-  ///Image for player
+  /// Image for player
   late final ui.Image playerImage;
   late final ui.Image playerImageUp;
   late final ui.Image playerImageDown;
   late final ui.Image playerImageLeft;
   late final ui.Image playerImageRight;
 
-  ///Number of rows
+  /// Number of rows
   final int rows;
 
-  ///Color of the walls
+  /// Color of the walls
   Color wallColor;
 
-  ///Size of the walls
+  /// Size of the walls
   final double wallThickness;
 
-  ///Private attributes
+  /// Private attributes
   late Cell _player, _exit;
   late List<ItemPosition> _checkpointsPositions;
   late List<List<Cell>> _cells;
   late List<ui.Image> _checkpoints;
   late double _cellSize, _hMargin, _vMargin;
 
-  ///Paints for `exit`, `player` and `walls`
+  /// Paints for `exit`, `player` and `walls`
   final Paint _exitPaint = Paint();
   final Paint _playerPaint = Paint();
   final Paint _wallPaint = Paint();
 
-  ///Randomizer for positions and walls distribution
+  /// Randomizer for positions and walls distribution
   final math.Random _randomizer = math.Random();
 
-  ///Position of user from event
+  /// Position of user from event
   late double _userX;
   late double _userY;
 
@@ -133,13 +133,16 @@ class MazePainter extends ChangeNotifier implements CustomPainter {
 
   List<Cell>? solution;
   final Set<Cell> _visitedCells = {};
-
   bool isSolSelect = false;
+  int? playerrow;
+  int? playercol;
 
-  ///This method initialize the maze by randomizing what wall will be disable
+  final double dashLength = 6.0;
+  final double gapLength = 6.0;
+
+  /// This method initialize the maze by randomizing what wall will be disable
   void _createMaze() {
     var stack = Stack<Cell>();
-    var stackpop = Stack<Cell>();
     Cell current;
     Cell? next;
 
@@ -153,6 +156,9 @@ class MazePainter extends ChangeNotifier implements CustomPainter {
 
     _player = _cells.first.first;
     _exit = _cells.last.last;
+
+    playerrow = _player.row;
+    playercol = _player.col;
 
     current = _cells.first.first..visited = true;
     _visitedCells.add(current); // store the first cell as visited
@@ -176,6 +182,7 @@ class MazePainter extends ChangeNotifier implements CustomPainter {
 
   /// This method moves player to user input
   void movePlayer(Direction direction) async {
+    solution = null;
     // Update the playerRotation angle based on the currentdirection
     switch (direction) {
       case Direction.up:
@@ -225,6 +232,9 @@ class MazePainter extends ChangeNotifier implements CustomPainter {
       }
     }
 
+    playerrow = _player.row;
+    playercol = _player.col;
+
     if (_player.col == _exit.col && _player.row == _exit.row) {
       if (onFinish != null) {
         onFinish!();
@@ -246,8 +256,8 @@ class MazePainter extends ChangeNotifier implements CustomPainter {
     }
   }
 
-  ///This method is used to notify the user drag position change to the maze
-  ///and perfom the movement
+  /// This method is used to notify the user drag position change to the maze
+  /// and perfom the movement
   void updatePosition(Offset position) {
     _userX = position.dx;
     _userY = position.dy;
@@ -279,25 +289,28 @@ class MazePainter extends ChangeNotifier implements CustomPainter {
         }
       }
     }
+
+    playerrow = _player.row;
+    playercol = _player.col;
   }
 
   @override
   void paint(Canvas canvas, Size size) async {
-    //get cell size
-    if (size.width / size.height < columns / rows) {
-      _cellSize = size.width / (columns + 1);
+    // get cell size
+    /*if (scrSize.width / scrSize.height < columns / rows) {
+      _cellSize = scrSize.width / (columns+0.2);
     } else {
-      _cellSize = size.height / (rows + 1);
-    }
-
-    //margin
-    _hMargin = (size.width - columns * _cellSize) / 2;
-    _vMargin = (size.height - rows * _cellSize) / 2;
-    var squareMargin = _cellSize / 10;
+      _cellSize = scrSize.height / (rows+0.2);
+    }*/
+    _cellSize = scrSize.width / columns;
+    // margin
+    _hMargin = (scrSize.width - columns * _cellSize) / 3;
+    _vMargin = (scrSize.height - rows * _cellSize) / 8;
     canvas.translate(_hMargin, _vMargin);
+
+    var squareMargin = _cellSize / 10;
     for (var v in _cells) {
       for (int i = 0; i < v.length; i++) {
-        PathItem pathItem = PathItem();
         if (v[i].topWall) {
           canvas.drawLine(
               Offset(v[i].col * _cellSize, v[i].row * _cellSize),
@@ -329,23 +342,104 @@ class MazePainter extends ChangeNotifier implements CustomPainter {
     }
 
     // Draw the solution path
-    if (solution != null) {
-      // draw the solution path if it exists
-      // set the paint color to red for the solution path
-      Paint paint = Paint()..color = Colors.green;
-
-      // iterate over the cells in the solution path
-      for (Cell cell in solution!) {
-        // calculate the pixel position of the center of the cell
-        centerX = (cell.col + 0.5) * _cellSize;
-        centerY = (cell.row + 0.5) * _cellSize;
-
-        // draw a small dot at the center of the cell to indicate it is part of the solution path
-        canvas.drawCircle(Offset(centerX, centerY), _cellSize / 20, paint);
-      }
-    }
+    drawSolution(canvas);
 
     // draw others
+    drawOthers(canvas, squareMargin);
+
+    for (var i = 0; i < _checkpoints.length; i++) {
+      canvas.drawImageRect(
+          _checkpoints[i],
+          Offset.zero &
+              Size(_checkpoints[i].width.toDouble(),
+                  _checkpoints[i].height.toDouble()),
+          Offset(_checkpointsPositions[i].col * _cellSize + squareMargin,
+                  _checkpointsPositions[i].row * _cellSize + squareMargin) &
+              Size(_cellSize - squareMargin, _cellSize - squareMargin),
+          _wallPaint);
+    }
+
+    // Draw the player image
+    double rotationAngle = 0.0;
+    switch (currentdirection) {
+      case Direction.up:
+        rotationAngle = 0.0;
+        displayPlayer(canvas, squareMargin, playerImageUp);
+        break;
+      case Direction.right:
+        rotationAngle = math.pi / 2;
+        displayPlayer(canvas, squareMargin, playerImageRight);
+        break;
+      case Direction.down:
+        rotationAngle = math.pi;
+        displayPlayer(canvas, squareMargin, playerImageDown);
+        break;
+      case Direction.left:
+        rotationAngle = -math.pi / 2;
+        displayPlayer(canvas, squareMargin, playerImageLeft);
+        break;
+    }
+  }
+
+  void displayPlayer(Canvas canvas, double squareMargin, ui.Image pimg) {
+    canvas.drawImageRect(
+      pimg,
+      Offset.zero & Size(pimg.width.toDouble(), pimg.height.toDouble()),
+      Offset(
+            _player.col * _cellSize +
+                (_cellSize - _cellSize * 0.9) / 2 +
+                squareMargin,
+            _player.row * _cellSize +
+                (_cellSize - _cellSize * 0.9) / 2 +
+                squareMargin,
+          ) &
+          Size(_cellSize * 0.9 - squareMargin, _cellSize * 0.9 - squareMargin),
+      _playerPaint,
+    );
+  }
+
+  void drawSolution(Canvas canvas) {
+    if (solution != null) {
+      Paint dashedLinePaint = Paint()
+        ..color = Colors.red
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.0;
+
+      for (int i = 0; i < solution!.length - 1; i++) {
+        Cell currentCell = solution![i];
+        Cell nextCell = solution![i + 1];
+
+        double currentX = (currentCell.col + 0.5) * _cellSize;
+        double currentY = (currentCell.row + 0.5) * _cellSize;
+        double nextX = (nextCell.col + 0.5) * _cellSize;
+        double nextY = (nextCell.row + 0.5) * _cellSize;
+
+        double deltaX = nextX - currentX;
+        double deltaY = nextY - currentY;
+        double distance = math.sqrt(deltaX * deltaX + deltaY * deltaY);
+        double dashAngle = math.atan2(deltaY, deltaX);
+
+        double dashCount =
+            (distance / (dashLength + gapLength)).floorToDouble();
+        double dashX = math.cos(dashAngle) * dashLength;
+        double dashY = math.sin(dashAngle) * dashLength;
+        double gapX = math.cos(dashAngle) * gapLength;
+        double gapY = math.sin(dashAngle) * gapLength;
+
+        for (int j = 0; j < dashCount; j++) {
+          double startX = currentX + j * (dashX + gapX);
+          double startY = currentY + j * (dashY + gapY);
+          double endX = startX + dashX;
+          double endY = startY + dashY;
+
+          canvas.drawLine(
+              Offset(startX, startY), Offset(endX, endY), dashedLinePaint);
+        }
+      }
+    }
+  }
+
+  void drawOthers(Canvas canvas, double squareMargin) {
     if (finishImage != null) {
       canvas.drawImageRect(
         finishImage!,
@@ -372,110 +466,6 @@ class MazePainter extends ChangeNotifier implements CustomPainter {
                   (_exit.row + 1) * _cellSize - squareMargin)),
           _exitPaint);
     }
-
-    for (var i = 0; i < _checkpoints.length; i++) {
-      canvas.drawImageRect(
-          _checkpoints[i],
-          Offset.zero &
-              Size(_checkpoints[i].width.toDouble(),
-                  _checkpoints[i].height.toDouble()),
-          Offset(_checkpointsPositions[i].col * _cellSize + squareMargin,
-                  _checkpointsPositions[i].row * _cellSize + squareMargin) &
-              Size(_cellSize - squareMargin, _cellSize - squareMargin),
-          _wallPaint);
-    }
-
-    // Draw the player image
-
-    double rotationAngle = 0.0;
-    switch (currentdirection) {
-      case Direction.up:
-        rotationAngle = 0.0;
-        canvas.drawImageRect(
-          playerImageUp,
-          Offset.zero &
-          Size(playerImageUp.width.toDouble(), playerImageUp.height.toDouble()),
-          Offset(
-            _player.col * _cellSize +
-                (_cellSize - _cellSize * 0.9) / 2 +
-                squareMargin,
-            _player.row * _cellSize +
-                (_cellSize - _cellSize * 0.9) / 2 +
-                squareMargin,
-          ) &
-          Size(
-              _cellSize * 0.9 - squareMargin, _cellSize * 0.9 - squareMargin),
-          _playerPaint,
-        );
-        break;
-      case Direction.right:
-        rotationAngle = math.pi / 2;
-        canvas.drawImageRect(
-          playerImageRight,
-          Offset.zero &
-          Size(playerImageRight.width.toDouble(), playerImageRight.height.toDouble()),
-          Offset(
-            _player.col * _cellSize +
-                (_cellSize - _cellSize * 0.9) / 2 +
-                squareMargin,
-            _player.row * _cellSize +
-                (_cellSize - _cellSize * 0.9) / 2 +
-                squareMargin,
-          ) &
-          Size(
-              _cellSize * 0.9 - squareMargin, _cellSize * 0.9 - squareMargin),
-          _playerPaint,
-        );
-        break;
-      case Direction.down:
-        rotationAngle = math.pi;
-        canvas.drawImageRect(
-          playerImageDown,
-          Offset.zero &
-          Size(playerImageDown.width.toDouble(), playerImageDown.height.toDouble()),
-          Offset(
-            _player.col * _cellSize +
-                (_cellSize - _cellSize * 0.9) / 2 +
-                squareMargin,
-            _player.row * _cellSize +
-                (_cellSize - _cellSize * 0.9) / 2 +
-                squareMargin,
-          ) &
-          Size(
-              _cellSize * 0.9- squareMargin, _cellSize * 0.9 - squareMargin),
-          _playerPaint,
-        );
-        break;
-      case Direction.left:
-        rotationAngle = -math.pi / 2;
-        canvas.drawImageRect(
-          playerImageLeft,
-          Offset.zero &
-          Size(playerImageLeft.width.toDouble(), playerImageLeft.height.toDouble()),
-          Offset(
-            _player.col * _cellSize +
-                (_cellSize - _cellSize * 0.9) / 2 +
-                squareMargin,
-            _player.row * _cellSize +
-                (_cellSize - _cellSize *0.9) / 2 +
-                squareMargin,
-          ) &
-          Size(
-              _cellSize * 0.9 - squareMargin, _cellSize *0.9 - squareMargin),
-          _playerPaint,
-        );
-        break;
-    }
-  }
-
-  // Utility function to load an image
-  Future<ui.Image> loadImage(String path) async {
-    final ByteData data = await rootBundle.load(path);
-    final Completer<ui.Image> completer = Completer();
-    ui.decodeImageFromList(Uint8List.view(data.buffer), (ui.Image img) {
-      return completer.complete(img);
-    });
-    return completer.future;
   }
 
   @override
@@ -494,28 +484,28 @@ class MazePainter extends ChangeNotifier implements CustomPainter {
   Cell? _getNext(Cell cell) {
     var neighbours = <Cell>[];
 
-    //left
+    // left
     if (cell.col > 0) {
       if (!_cells[cell.col - 1][cell.row].visited) {
         neighbours.add(_cells[cell.col - 1][cell.row]);
       }
     }
 
-    //right
+    // right
     if (cell.col < columns - 1) {
       if (!_cells[cell.col + 1][cell.row].visited) {
         neighbours.add(_cells[cell.col + 1][cell.row]);
       }
     }
 
-    //Top
+    // Top
     if (cell.row > 0) {
       if (!_cells[cell.col][cell.row - 1].visited) {
         neighbours.add(_cells[cell.col][cell.row - 1]);
       }
     }
 
-    //Bottom
+    // Bottom
     if (cell.row < rows - 1) {
       if (!_cells[cell.col][cell.row + 1].visited) {
         neighbours.add(_cells[cell.col][cell.row + 1]);
@@ -568,7 +558,8 @@ class MazePainter extends ChangeNotifier implements CustomPainter {
     solution = null;
   }
 
-  Future<List<Cell>> computeSolutionPath(Cell startCell) async {
+  Future<List<Cell>> computeSolutionPath() async {
+    var startCell = Cell(_player.col, _player.row);
     var endCell = _cells.last.last;
     var queue = Queue<List<Cell>>();
     queue.add([startCell]);

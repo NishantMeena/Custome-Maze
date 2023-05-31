@@ -1,15 +1,11 @@
 import 'dart:async';
-import 'dart:math';
-import 'dart:typed_data';
-
 import 'package:audioplayers/audioplayers.dart';
-import 'package:circular_countdown_timer/circular_countdown_timer.dart';
 import 'package:custom_mazeapp/maze_widget.dart';
 import 'package:custom_mazeapp/models/item.dart';
 import 'package:custom_mazeapp/models/level/level_item.dart';
 import 'package:custom_mazeapp/screens/dashboard.dart';
-import 'package:custom_mazeapp/utils/AudioPlayerManager.dart';
-import 'package:custom_mazeapp/utils/database_helper.dart';
+import 'package:custom_mazeapp/screens/star_rating.dart';
+import 'package:custom_mazeapp/utils/DatabaseHelper.dart';
 import 'package:flutter/material.dart';
 import 'package:custom_mazeapp/utils/Constants.dart';
 import 'package:flutter/services.dart';
@@ -18,40 +14,31 @@ import 'package:material_dialogs/widgets/buttons/icon_button.dart';
 import 'package:quickalert/quickalert.dart';
 import 'package:material_dialogs/material_dialogs.dart';
 
-import '../utils/Constants.dart';
-
 class MazeScreen extends StatefulWidget {
   int? id;
-  int row = 0, column = 0, count = 0, dificulty = 0;
+  int row = 0, column = 0, stars = 0, count = 0, dificulty = 0;
   String levelName = "";
   Color boxColor = Colors.green;
 
-  MazeScreen(int id, String levelName, int row, int column, int count,
-      int dificulty, Color boxColor) {
-    this.id = id;
-    this.levelName = levelName;
-    this.row = row;
-    this.column = column;
-    this.count = count;
-    this.dificulty = dificulty;
-    this.boxColor = boxColor;
-  }
+  MazeScreen(int this.id, this.levelName, this.row, this.column, this.count,
+      this.dificulty, this.boxColor, this.stars);
 
   @override
-  _MazeScreenState createState() =>
-      _MazeScreenState(id!, levelName, row, column, count, dificulty, boxColor);
+  _MazeScreenState createState() => _MazeScreenState(id!, levelName, row, column, count, dificulty, boxColor, stars);
 }
 
 class _MazeScreenState extends State<MazeScreen> with WidgetsBindingObserver {
   int myRow = Constants.DEF_ROW_NUMBER;
   int myColumn = Constants.DEF_COLUMN_NUMBER;
   int myCount = 0;
+  int myStars = 0;
   int dificultyLevel = 0;
   int? myId;
   String levelName = "";
   late int maxSecond;
 
   late int second;
+  int rankSecond = 0;
   Timer? timer;
   bool isRunningTimer = false;
   bool isCompleated = false;
@@ -63,15 +50,17 @@ class _MazeScreenState extends State<MazeScreen> with WidgetsBindingObserver {
   Color boxColor = Colors.green;
   Color playerColor = Colors.blue;
   int sel = 0;
+  bool solTapOnce = false;
   AudioPlayer? player;
   AudioCache? audioCache;
   int timesPlayed = 0;
   bool shouldContinuePlaying = true;
-  late final audioplaymanager;
+  late Color starColor;
 
   _MazeScreenState(int id, this.levelName, this.myRow, this.myColumn, int count,
-      int dificulty, Color boxColor) {
+      int dificulty, Color boxColor, int stars) {
     myCount = count;
+    myStars = stars;
     myId = id;
     dificultyLevel = dificulty;
     this.maxSecond = count;
@@ -84,16 +73,16 @@ class _MazeScreenState extends State<MazeScreen> with WidgetsBindingObserver {
     }
     timer = Timer.periodic(Duration(seconds: 1), (timer) {
       setState(() {
-        if (second > 0) {
+         if (second > 0) {
           isProgressColor = true;
+          rankSecond = second;
           second--;
         } else {
           isProgressColor = false;
           // it does not reset the timer
           stopTimer(reset: false, pause: 0);
-          audioplaymanager.playAudioass(false);
           if (isPlaying == false) {
-            playAudioonce('game_over.mp3');
+            playAudio('game_over.mp3', false);
           }
           showFailureDialog(context);
         }
@@ -113,11 +102,9 @@ class _MazeScreenState extends State<MazeScreen> with WidgetsBindingObserver {
     if (reset) {
       resetTimer(pause);
     }
-    setState(() {
-      timer?.cancel();
-    });
+    timer?.cancel();
+    stopAudio();
   }
-
 
   @override
   void initState() {
@@ -125,27 +112,35 @@ class _MazeScreenState extends State<MazeScreen> with WidgetsBindingObserver {
     if (dificultyLevel == 0) {
       boxColor = Colors.green;
       playerColor = Colors.red;
+      starColor = Colors.cyanAccent;
     } else if (dificultyLevel == 1) {
       boxColor = Colors.blue;
       playerColor = Colors.white;
+      starColor = Colors.lightGreenAccent;
     } else if (dificultyLevel == 2) {
       boxColor = Colors.red;
       playerColor = Colors.green;
+      starColor = Colors.lime;
     }
     mazePath(myRow, myColumn);
     WidgetsBinding.instance.addObserver(this);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       startTimer(reset: false);
-      audioplaymanager=AudioPlayerManager();
-      audioplaymanager.playAudioass(true);
+
+      player = AudioPlayer();
+      playAudio("game_music.mp3", true);
     });
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    SystemChrome.setPreferredOrientations(DeviceOrientation.values);
     stopTimer(reset: false, pause: 0);
-    audioplaymanager.playAudioass(false);
     super.dispose();
   }
 
@@ -160,16 +155,41 @@ class _MazeScreenState extends State<MazeScreen> with WidgetsBindingObserver {
     });
   }
 
-  void playAudioonce(String audio) async {
+  /* Future<void> playAudioonce(String audio) async {
+    await player?.setUrl(audio);
+    player?.setReleaseMode(ReleaseMode.LOOP);
+    player?.resume();
+  }*/
+
+  void playAudio(String path, bool isResume) async {
     player = AudioPlayer();
     audioCache = AudioCache();
-    player = await audioCache?.play(audio);
+    int timesPlayed = 0;
+    const timestoPlay = 10;
+
+    if (isResume == false) {
+      player = await audioCache?.play(path);
+    } else {
+      player = await audioCache?.play(path);
+      player?.onPlayerCompletion.listen((event) {
+        timesPlayed++;
+        if (timesPlayed >= timestoPlay) {
+          timesPlayed = 0;
+          player?.stop();
+        } else {
+          player?.resume();
+        }
+      });
+    }
+  }
+
+  void stopAudio() {
+    player?.stop();
   }
 
   bool isButtonDisabled = false;
 
   void handleClick() async {
-    audioplaymanager.playAudioass(false);
     if (!isButtonDisabled) {
       setState(() {
         isButtonDisabled = true;
@@ -182,7 +202,7 @@ class _MazeScreenState extends State<MazeScreen> with WidgetsBindingObserver {
       });
 
       stopTimer(reset: true, pause: 0);
-      onRestart(myId!, levelName, myRow, myColumn, myCount);
+      onRestart(myId!, levelName, myRow, myColumn, myCount, myStars);
     }
   }
 
@@ -190,128 +210,163 @@ class _MazeScreenState extends State<MazeScreen> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     return WillPopScope(
       onWillPop: () async {
-        audioplaymanager.playAudioass(false);
         goBack();
         return false;
       },
       child: Scaffold(
-          body: Padding(
-        padding: const EdgeInsets.only(top: 5.0),
-        child: Column(
+        appBar: AppBar(
+          automaticallyImplyLeading: false,
+          backgroundColor: Colors.transparent,
+          title: gsetTitleBar(),
+        ),
+        body: Column(
           children: [
             Expanded(
-                flex: 10,
-                child: Stack(
-                  children: [
-                    myMaze(context, myRow, myColumn),
-                  ],
-                )),
-            Expanded(
-              flex: 1,
-              child: Container(
-                color: Colors.transparent,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Expanded(
+              child: myMaze(context, myRow, myColumn),
+            ),
+            SizedBox(
+              height: 5,
+            ),
+            Container(
+              padding: EdgeInsets.all(8.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Expanded(
+                    flex: 1,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        SizedBox(
+                          width: 15,
+                        ),
+                        IconButton(
+                            onPressed: handleClick,
+                            icon: Icon(
+                              Icons.refresh_outlined,
+                              color: boxColor,
+                            )),
+                        IconButton(
+                            onPressed: () {
+                              setState(() {
+                                if (sel == 0) {
+                                  sel = 1;
+                                  solTapOnce = true;
+                                } else {
+                                  sel = 0;
+                                }
+                              });
+                            },
+                            icon: sel == 0
+                                ? Icon(
+                                    Icons.lightbulb_outline,
+                                    color: boxColor,
+                                  )
+                                : Icon(
+                                    Icons.lightbulb,
+                                    color: boxColor,
+                                  ))
+                      ],
+                    ),
+                  ),
+                  Expanded(
                       flex: 1,
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           SizedBox(
-                            width: 15,
-                          ),
-                          IconButton(
-                              onPressed: handleClick,
-                              icon: Icon(
-                                Icons.refresh_outlined,
-                                color: boxColor,
-                              )),
-                          IconButton(
-                              onPressed: () {
-                                setState(() {
-                                  if (sel == 0) {
-                                    sel = 1;
-                                  } else {
-                                    sel = 0;
-                                  }
-                                });
-                              },
-                              icon: sel == 0
-                                  ? Icon(
-                                      Icons.lightbulb_outline,
-                                      color: boxColor,
-                                    )
-                                  : Icon(
-                                      Icons.lightbulb,
-                                      color: boxColor,
-                                    ))
+                            width: 55,
+                            height: 55,
+                            child: Stack(fit: StackFit.expand, children: [
+                              CircularProgressIndicator(
+                                strokeWidth: 3,
+                                value: second / maxSecond,
+                              ),
+                              Center(child: buildTimer())
+                            ]),
+                          )
                         ],
-                      ),
+                      )),
+                  Expanded(
+                    flex: 1,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        IconButton(
+                            onPressed: () {
+                              setState(() {
+                                if (isPlaying) {
+                                  isPlaying = false;
+                                  playAudio("game_music.mp3", true);
+                                } else {
+                                  isPlaying = true;
+                                  stopAudio();
+                                }
+                              });
+                            },
+                            icon: isPlaying
+                                ? Icon(
+                                    Icons.volume_off,
+                                    color: boxColor,
+                                  )
+                                : Icon(
+                                    Icons.volume_up,
+                                    color: boxColor,
+                                  )),
+                        IconButton(
+                            onPressed: () {
+                              goBack();
+                            },
+                            icon: Icon(
+                              Icons.back_hand,
+                              color: boxColor,
+                            )),
+                      ],
                     ),
-                    Expanded(
-                        flex: 1,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            SizedBox(
-                              width: 55,
-                              height: 55,
-                              child: Stack(fit: StackFit.expand, children: [
-                                CircularProgressIndicator(
-                                  strokeWidth: 3,
-                                  value: second / maxSecond,
-                                ),
-                                Center(child: buildTimer())
-                              ]),
-                            )
-                          ],
-                        )),
-                    Expanded(
-                      flex: 1,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        children: [
-                          IconButton(
-                              onPressed: () {
-                                setState(() {
-                                  if (isPlaying) {
-                                    isPlaying = false;
-                                    audioplaymanager.playAudioass(false);
-                                  } else {
-                                    isPlaying = true;
-                                    audioplaymanager.playAudioass(true);
-                                  }
-                                });
-                              },
-                              icon: isPlaying
-                                  ? Icon(
-                                      Icons.volume_off,
-                                      color: boxColor,
-                                    )
-                                  : Icon(
-                                      Icons.volume_up,
-                                      color: boxColor,
-                                    )),
-                          IconButton(
-                              onPressed: () {
-                                audioplaymanager.playAudioass(false);
-                                goBack();
-                              },
-                              icon: Icon(
-                                Icons.back_hand,
-                                color: boxColor,
-                              )),
-                        ],
-                      ),
-                    )
-                  ],
-                ),
+                  )
+                ],
               ),
             )
           ],
         ),
-      )),
+      ),
+    );
+  }
+
+  Widget gsetTitleBar() {
+    return SizedBox(
+      height: 30,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            "Level: $levelName",
+            style: TextStyle(fontFamily: "Sunny", color: starColor),
+          ),
+          Visibility(
+            visible: myStars != 0,
+            child: Row(
+              children: [
+                const SizedBox(
+                  width: 10,
+                ),
+                StarRating(
+                  rating: myStars.toDouble(),
+                  size: 10.0,
+                  star_color: starColor,
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            onPressed: () {},
+            icon: Icon(
+              Icons.help_outline,
+              color: starColor,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -328,7 +383,7 @@ class _MazeScreenState extends State<MazeScreen> with WidgetsBindingObserver {
                   fontSize: 10),
             ),
           )
-        : Text("");
+        : const Text("");
   }
 
   Widget myMaze(BuildContext context, int row, int column) {
@@ -336,12 +391,15 @@ class _MazeScreenState extends State<MazeScreen> with WidgetsBindingObserver {
         sel: sel,
         playerColor: playerColor,
         player: MazeItem("assets/ghost.png", ImageType.asset),
-        playerUp: MazeItem("assets/ghostupper.png", ImageType.asset),
-        playerDown: MazeItem("assets/ghostdownmove.png", ImageType.asset),
-        playerLeft: MazeItem("assets/ghostleftmove.png", ImageType.asset),
-        playerRight: MazeItem("assets/ghostrightmove.png", ImageType.asset),
-        columns: myColumn,
-        rows: myRow,
+        playerUp: MazeItem("assets/playerimage/playerup1.png", ImageType.asset),
+        playerDown:
+            MazeItem("assets/playerimage/playerdown1.png", ImageType.asset),
+        playerLeft:
+            MazeItem("assets/playerimage/playerleft1.png", ImageType.asset),
+        playerRight:
+            MazeItem("assets/playerimage/playerright1.png", ImageType.asset),
+        columns: column,
+        rows: row,
         wallThickness: 4.0,
         wallColor: boxColor,
         pointColor: boxColor,
@@ -350,11 +408,9 @@ class _MazeScreenState extends State<MazeScreen> with WidgetsBindingObserver {
         onFinish: () {
           isProgressColor = false;
           stopTimer(reset: false);
-          audioplaymanager.playAudioass(false);
           if (isPlaying == false) {
-            playAudioonce('success.mp3');
+            playAudio('success.mp3', false);
           }
-
           showDialog();
         });
   }
@@ -375,80 +431,73 @@ class _MazeScreenState extends State<MazeScreen> with WidgetsBindingObserver {
         IconsButton(
           onPressed: () async {
             stopTimer(reset: true, pause: 0);
-            LevelItem levelItem = LevelItem(
-              (myId! + 1),
-              levelName,
-              1,
-              myRow,
-              myColumn,
-              myCount,
-            );
-
             int? lastid = await helper.getLastItemId(dificultyLevel) as int?;
             if (lastid != myId) {
               helper.updateLevel((myId! + 1), dificultyLevel);
+              // update stars
+              helper.updateStars(
+                  myId!, dificultyLevel, solTapOnce ? 1 : calculateStars());
               LevelItem levelItem = await helper.getLevel(
                 (myId! + 1),
                 dificultyLevel,
               ) as LevelItem;
-              onRestart(
-                levelItem.id!,
-                levelItem.levelName,
-                levelItem.row,
-                levelItem.column,
-                levelItem.count,
-              );
+              onRestart(levelItem.id!, levelItem.levelName, levelItem.row,
+                  levelItem.column, levelItem.count, levelItem.stars);
             } else {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => DashboardScreen(dificultyLevel),
-                ),
-              );
+              gotoDashboard();
             }
             setState(() {});
           },
           text: 'Next',
           iconData: Icons.done,
           color: boxColor,
-          textStyle: TextStyle(fontFamily: "Sunny", color: Colors.white),
+          textStyle: const TextStyle(fontFamily: "Sunny", color: Colors.white),
           iconColor: Colors.white,
         ),
       ],
     ).then((value) async {
       stopTimer(reset: true, pause: 0);
-      LevelItem levelItem = LevelItem(
-        (myId! + 1),
-        levelName,
-        1,
-        myRow,
-        myColumn,
-        myCount,
-      );
 
       int? lastid = await helper.getLastItemId(dificultyLevel) as int?;
       if (lastid != myId) {
         helper.updateLevel((myId! + 1), dificultyLevel);
+        // update stars
+        helper.updateStars(
+            myId!, dificultyLevel, solTapOnce ? 1 : calculateStars());
         LevelItem levelItem = await helper.getLevel(
           (myId! + 1),
           dificultyLevel,
         ) as LevelItem;
-        onRestart(
-          levelItem.id!,
-          levelItem.levelName,
-          levelItem.row,
-          levelItem.column,
-          levelItem.count,
-        );
+        onRestart(levelItem.id!, levelItem.levelName, levelItem.row,
+            levelItem.column, levelItem.count, levelItem.stars);
       } else {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => DashboardScreen(dificultyLevel),
-          ),
-        );
+       gotoDashboard();
       }
     });
+  }
+
+  void gotoDashboard(){
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => DashboardScreen(dificultyLevel),
+      ),
+    );
+  }
+
+  int calculateStars() {
+    // Define the time intervals for each star rating
+    int threeStarInterval = (2 * maxSecond) ~/ 3;
+    int twoStarInterval = (maxSecond) ~/ 3;
+    int starRating;
+    if (rankSecond >= threeStarInterval) {
+      starRating = 3;
+    } else if (rankSecond >= twoStarInterval) {
+      starRating = 2;
+    } else {
+      starRating = 1;
+    }
+    return starRating;
   }
 
   void showFailureDialog(BuildContext context) {
@@ -465,27 +514,23 @@ class _MazeScreenState extends State<MazeScreen> with WidgetsBindingObserver {
         animType: QuickAlertAnimType.slideInRight,
         onConfirmBtnTap: () {
           stopTimer(reset: true, pause: 0);
-          onRestart(myId!, levelName, myRow, myColumn, myCount);
+          onRestart(myId!, levelName, myRow, myColumn, myCount, myStars);
           setState(() {});
         });
   }
 
-  void onRestart(int id, String level, int row, int column, int count) {
-    audioplaymanager.playAudioass(false);
+  void onRestart(
+      int id, String level, int row, int column, int count, int stars) {
     Navigator.pushReplacement(
         context,
         MaterialPageRoute(
           builder: (context) => MazeScreen(
-              id, level, row, column, count, dificultyLevel, boxColor),
+              id, level, row, column, count, dificultyLevel, boxColor, stars),
         ));
   }
 
   void goBack() {
-    Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => DashboardScreen(dificultyLevel),
-        ));
+   gotoDashboard();
   }
 
   Widget getVolumeIcon(bool isplay) {
